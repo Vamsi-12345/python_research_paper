@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Adaptive Tool-Use Agent</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- ================= NAVBAR ================= -->
+
+<header class="navbar">
+
+    <div class="logo">
+        <span class="logo-icon">AI</span>
+        <span>Adaptive Agent</span>
+    </div>
+
+    <nav>
+        <a href="#home">Home</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#simulation">Simulation</a>
+        <a href="#comparison">Comparison</a>
+        <a href="#files">Python Files</a>
+    </nav>
+
+</header>
+
+
+<!-- ================= HERO ================= -->
+
+<section id="home" class="hero">
+
+    <div class="hero-content">
+
+        <div class="badge">
+            PLANBENCH-XL INSPIRED PROJECT
+        </div>
+
+        <h1>
+            Adaptive Tool-Use Agent
+            <span>for Long-Horizon Planning</span>
+        </h1>
+
+        <p class="hero-description">
+            A failure-aware tool-use environment that evaluates how an
+            intelligent agent detects tool failures, remembers unreliable
+            routes, backtracks, and recovers using alternative tools.
+        </p>
+
+        <div class="hero-buttons">
+
+            <button class="primary-btn" onclick="runRecovery()">
+                Run Recovery Agent
+            </button>
+
+            <button class="secondary-btn" onclick="scrollToSimulation()">
+                Explore Simulation
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="hero-card">
+
+        <div class="status-header">
+            <span class="status-dot"></span>
+            SYSTEM READY
+        </div>
+
+        <div class="terminal">
+
+            <p>
+                <span class="green">></span>
+                Initializing task...
+            </p>
+
+            <p>
+                <span class="green">></span>
+                Loading tool graph...
+            </p>
+
+            <p>
+                <span class="green">></span>
+                Failure-aware agent ready
+            </p>
+
+            <p>
+                <span class="yellow">></span>
+                Waiting for execution...
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= PROJECT OVERVIEW ================= -->
+
+<section class="section">
+
+    <div class="section-title">
+
+        <span>01</span>
+
+        <div>
+            <h2>Project Overview</h2>
+
+            <p>
+                Understanding the problem and the proposed solution.
+            </p>
+        </div>
+
+    </div>
+
+
+    <div class="overview-grid">
+
+        <div class="info-card">
+
+            <div class="card-icon">01</div>
+
+            <h3>Tool Selection</h3>
+
+            <p>
+                Select appropriate tools based on the current state
+                and required target state.
+            </p>
+
+        </div>
+
+
+        <div class="info-card">
+
+            <div class="card-icon">02</div>
+
+            <h3>Long-Horizon Planning</h3>
+
+            <p>
+                Tasks require multiple sequential tool calls before
+                reaching the final objective.
+            </p>
+
+        </div>
+
+
+        <div class="info-card">
+
+            <div class="card-icon">03</div>
+
+            <h3>Failure Detection</h3>
+
+            <p>
+                The system identifies explicit failures and suspicious
+                or non-progressing tool results.
+            </p>
+
+        </div>
+
+
+        <div class="info-card">
+
+            <div class="card-icon">04</div>
+
+            <h3>Recovery</h3>
+
+            <p>
+                The recovery agent can backtrack and select an
+                alternative route when a tool fails.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= ARCHITECTURE ================= -->
+
+<section id="architecture" class="section dark-section">
+
+    <div class="section-title">
+
+        <span>02</span>
+
+        <div>
+            <h2>Tool Graph</h2>
+
+            <p>
+                The planning environment represents tools as transitions
+                between states.
+            </p>
+        </div>
+
+    </div>
+
+
+    <div class="graph-container">
+
+        <div class="graph-node">
+            <strong>account_id</strong>
+            <small>Initial State</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="graph-node">
+            <strong>user_id</strong>
+            <small>get_user_by_account</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="graph-node">
+            <strong>order_id</strong>
+            <small>get_order_id</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="graph-node">
+            <strong>return_id</strong>
+            <small>get_return_id</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="graph-node">
+            <strong>refund_id</strong>
+            <small>get_refund_id</small>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="graph-node success-node">
+            <strong>refund_status</strong>
+            <small>get_refund_status</small>
+        </div>
+
+    </div>
+
+
+    <div class="alternative-route">
+
+        <div class="route-label">
+            ALTERNATIVE RECOVERY ROUTE
+        </div>
+
+        <div class="recovery-flow">
+
+            <span>order_id</span>
+
+            <b>→</b>
+
+            <span>transaction_id</span>
+
+            <b>→</b>
+
+            <span>refund_status</span>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= AGENT ARCHITECTURE ================= -->
+
+<section class="section">
+
+    <div class="section-title">
+
+        <span>03</span>
+
+        <div>
+            <h2>Agent Architecture</h2>
+
+            <p>
+                Two agents are evaluated under the same environment.
+            </p>
+        </div>
+
+    </div>
+
+
+    <div class="agent-grid">
+
+        <!-- BASELINE -->
+
+        <div class="agent-card baseline-card">
+
+            <div class="agent-header">
+
+                <div>
+                    <span class="agent-label">AGENT A</span>
+                    <h3>Baseline Agent</h3>
+                </div>
+
+                <span class="agent-status">BASELINE</span>
+
+            </div>
+
+            <ul>
+
+                <li>Basic tool selection</li>
+
+                <li>No trust memory</li>
+
+                <li>No failure classifier</li>
+
+                <li>No intelligent backtracking</li>
+
+                <li>Continues using planned route</li>
+
+            </ul>
+
+            <div class="agent-result" id="baselineResult">
+
+                Ready to run
+
+            </div>
+
+        </div>
+
+
+        <!-- RECOVERY -->
+
+        <div class="agent-card recovery-card">
+
+            <div class="agent-header">
+
+                <div>
+                    <span class="agent-label">AGENT B</span>
+                    <h3>Recovery Agent</h3>
+                </div>
+
+                <span class="agent-status success-status">
+                    FAILURE-AWARE
+                </span>
+
+            </div>
+
+            <ul>
+
+                <li>Failure detection</li>
+
+                <li>Result classification</li>
+
+                <li>Trust memory</li>
+
+                <li>Backtracking</li>
+
+                <li>Alternative route selection</li>
+
+            </ul>
+
+            <div class="agent-result" id="recoveryResult">
+
+                Ready to run
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= SIMULATION ================= -->
+
+<section id="simulation" class="section simulation-section">
+
+    <div class="section-title">
+
+        <span>04</span>
+
+        <div>
+            <h2>Interactive Simulation</h2>
+
+            <p>
+                Simulate a long-horizon task and observe how each
+                agent reacts to a tool failure.
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- TASK -->
+
+    <div class="task-panel">
+
+        <div class="task-header">
+
+            <div>
+
+                <span class="mini-label">
+                    TASK T001
+                </span>
+
+                <h3>Refund Status Retrieval</h3>
+
+            </div>
+
+            <span class="task-status" id="taskStatus">
+                READY
+            </span>
+
+        </div>
+
+
+        <div class="task-details">
+
+            <div>
+                <span>Initial State</span>
+                <strong>account_id = acc_001</strong>
+            </div>
+
+            <div>
+                <span>Target State</span>
+                <strong>refund_status</strong>
+            </div>
+
+            <div>
+                <span>Minimum Steps</span>
+                <strong>5</strong>
+            </div>
+
+            <div>
+                <span>Injected Failure</span>
+                <strong>Implicit Failure</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- CONTROLS -->
+
+    <div class="simulation-controls">
+
+        <button
+            class="primary-btn"
+            onclick="runBaseline()">
+
+            Run Agent A
+
+        </button>
+
+
+        <button
+            class="recovery-button"
+            onclick="runRecovery()">
+
+            Run Agent B
+
+        </button>
+
+
+        <button
+            class="danger-button"
+            onclick="injectFailure()">
+
+            Inject Failure
+
+        </button>
+
+
+        <button
+            class="reset-button"
+            onclick="resetSimulation()">
+
+            Reset
+
+        </button>
+
+    </div>
+
+
+    <!-- EXECUTION -->
+
+    <div class="execution-panel">
+
+        <div class="execution-header">
+
+            <h3>Execution Trace</h3>
+
+            <span id="executionStatus">
+                Waiting...
+            </span>
+
+        </div>
+
+
+        <div id="executionTrace" class="execution-trace">
+
+            <div class="empty-state">
+
+                Run an agent to view its execution trace.
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FAILURE -->
+
+    <div
+        id="failurePanel"
+        class="failure-panel hidden">
+
+        <div class="failure-icon">
+            !
+        </div>
+
+        <div>
+
+            <strong>Tool Failure Detected</strong>
+
+            <p>
+                get_refund_status returned a suspicious result:
+                <b>"tuna"</b>
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- RECOVERY -->
+
+    <div
+        id="recoveryPanel"
+        class="recovery-panel hidden">
+
+        <div class="recovery-title">
+
+            <span>RECOVERY PROCESS</span>
+
+        </div>
+
+        <div class="recovery-steps">
+
+            <div>
+                <b>1</b>
+                Failure classified as NON_PROGRESS
+            </div>
+
+            <div>
+                <b>2</b>
+                Trust memory updated
+            </div>
+
+            <div>
+                <b>3</b>
+                Previous route rejected
+            </div>
+
+            <div>
+                <b>4</b>
+                Agent backtracked
+            </div>
+
+            <div>
+                <b>5</b>
+                Alternative tool selected
+            </div>
+
+            <div>
+                <b>6</b>
+                Correct refund status obtained
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= METRICS ================= -->
+
+<section id="comparison" class="section dark-section">
+
+    <div class="section-title">
+
+        <span>05</span>
+
+        <div>
+            <h2>Evaluation Metrics</h2>
+
+            <p>
+                Compare the behaviour of the baseline and recovery agents.
+            </p>
+        </div>
+
+    </div>
+
+
+    <div class="metrics-grid">
+
+
+        <div class="metric-card">
+
+            <span>Task Accuracy</span>
+
+            <div class="metric-values">
+
+                <div>
+                    <small>Agent A</small>
+                    <strong id="accuracyA">0%</strong>
+                </div>
+
+                <div>
+                    <small>Agent B</small>
+                    <strong id="accuracyB">0%</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <span>Recovery Rate</span>
+
+            <div class="metric-values">
+
+                <div>
+                    <small>Agent A</small>
+                    <strong>0%</strong>
+                </div>
+
+                <div>
+                    <small>Agent B</small>
+                    <strong id="recoveryRate">100%</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <span>Average Steps</span>
+
+            <div class="metric-values">
+
+                <div>
+                    <small>Agent A</small>
+                    <strong id="stepsA">0</strong>
+                </div>
+
+                <div>
+                    <small>Agent B</small>
+                    <strong id="stepsB">0</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <span>Backtracks</span>
+
+            <div class="metric-values">
+
+                <div>
+                    <small>Agent A</small>
+                    <strong>0</strong>
+                </div>
+
+                <div>
+                    <small>Agent B</small>
+                    <strong id="backtracks">3</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="comparison-table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Metric</th>
+
+                    <th>Agent A — Baseline</th>
+
+                    <th>Agent B — Recovery</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr>
+
+                    <td>Failure Detection</td>
+
+                    <td class="bad">No</td>
+
+                    <td class="good">Yes</td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Result Classification</td>
+
+                    <td class="bad">No</td>
+
+                    <td class="good">Yes</td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Trust Memory</td>
+
+                    <td class="bad">No</td>
+
+                    <td class="good">Yes</td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Backtracking</td>
+
+                    <td class="bad">No</td>
+
+                    <td class="good">Yes</td>
+
+                </tr>
+
+                <tr>
+
+                    <td>Alternative Route</td>
+
+                    <td class="bad">No</td>
+
+                    <td class="good">Yes</td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- ================= ERROR TYPES ================= -->
+
+<section class="section">
+
+    <div class="section-title">
+
+        <span>06</span>
+
+        <div>
+
+            <h2>Failure Taxonomy</h2>
+
+            <p>
+                Failure types considered by the evaluation environment.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="failure-grid">
+
+        <div class="taxonomy-card">
+
+            <span>01</span>
+
+            <h3>No Traction</h3>
+
+            <p>
+                The agent makes tool calls without meaningful progress
+                toward the target state.
+            </p>
+
+        </div>
+
+
+        <div class="taxonomy-card">
+
+            <span>02</span>
+
+            <h3>Irrecoverable Drift</h3>
+
+            <p>
+                The execution moves away from the valid route and
+                cannot recover without restarting or backtracking.
+            </p>
+
+        </div>
+
+
+        <div class="taxonomy-card">
+
+            <span>03</span>
+
+            <h3>Weak Recovery</h3>
+
+            <p>
+                The agent detects a problem but does not efficiently
+                recover using an alternative path.
+            </p>
+
+        </div>
+
+
+        <div class="taxonomy-card">
+
+            <span>04</span>
+
+            <h3>Format Error</h3>
+
+            <p>
+                A tool produces an output that does not match the
+                expected result format.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= PYTHON FILES ================= -->
+
+<section id="files" class="section dark-section">
+
+    <div class="section-title">
+
+        <span>07</span>
+
+        <div>
+
+            <h2>Python Implementation</h2>
+
+            <p>
+                Source files used to implement the planning and
+                failure-recovery environment.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="file-grid">
+
+
+        <a href="agent_baseline.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>agent_baseline.py</h3>
+
+                <p>Baseline agent implementation</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="agent_recovery.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>agent_recovery.py</h3>
+
+                <p>Failure-aware recovery agent</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="evaluator.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>evaluator.py</h3>
+
+                <p>Evaluation and comparison metrics</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="failures.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>failures.py</h3>
+
+                <p>Failure injection framework</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="graph.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>graph.py</h3>
+
+                <p>Tool-state graph</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="main.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>main.py</h3>
+
+                <p>Main experiment runner</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="result_classifier.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>result_classifier.py</h3>
+
+                <p>Tool-result classification</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="search.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>search.py</h3>
+
+                <p>DFS planning engine</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="task.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>task.py</h3>
+
+                <p>Task definition</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="tools.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>tools.py</h3>
+
+                <p>Tool implementations and hidden data</p>
+
+            </div>
+
+        </a>
+
+
+        <a href="trust_memory.py"
+           target="_blank"
+           class="file-card">
+
+            <div class="file-icon">PY</div>
+
+            <div>
+
+                <h3>trust_memory.py</h3>
+
+                <p>Tool reliability memory</p>
+
+            </div>
+
+        </a>
+
+
+    </div>
+
+</section>
+
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <div class="footer-logo">
+        Adaptive Tool-Use Agent
+    </div>
+
+    <p>
+        A simplified failure-aware tool-use environment inspired by
+        long-horizon planning benchmarks.
+    </p>
+
+    <div class="footer-line"></div>
+
+    <p class="copyright">
+        © 2026 Adaptive Tool-Use Agent Project
+    </p>
+
+</footer>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
