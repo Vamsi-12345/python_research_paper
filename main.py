@@ -43,6 +43,7 @@ def temporarily_wrong_tool(module, attr_name: str, wrong_value: object):
 
 def print_agent_result(agent_label: str, result: dict) -> None:
     print(f"\n--- {agent_label} ---")
+
     print(f"Reached goal:      {result.get('success')}")
     print(f"Tool calls:        {result.get('tool_call_count')}")
     print(f"Executed tools:    {result.get('executed_tools')}")
@@ -82,8 +83,14 @@ def main() -> None:
 
     task = Task(
         task_id="T001",
-        initial_state={"user_id": "user_1"},
+
+        # Start from account_id so the complete route contains
+        # at least 5 tool calls.
+        initial_state={"account_id": "acc_001"},
+
         target_state="refund_status",
+
+        # Minimum required number of tool calls.
         required_min_steps=5,
     )
 
@@ -98,6 +105,7 @@ def main() -> None:
     # ------------------------------------------------------------
 
     search_engine = SearchEngine(graph)
+
     planned_path = search_engine.forward_dfs(task)
 
     print("=" * 60)
@@ -108,22 +116,20 @@ def main() -> None:
 
     # ------------------------------------------------------------
     # 4. Create FailureInjector for Agent B
-    #
-    # IMPORTANT:
-    # The RecoveryAgent needs the implicit failure only once.
-    # After the failed attempt, the alternative route should be
-    # allowed to obtain the correct result.
     # ------------------------------------------------------------
 
     injector = FailureInjector()
     injector.enable()
 
+    # Inject an implicit failure into get_refund_status.
+    # "tuna" is intentionally an invalid refund status.
+    # once=True means the failure happens only once.
     injector.inject(
-    "get_refund_status",
-    FailureType.IMPLICIT_FAILURE,
-    wrong_value=FAILURE_WRONG_VALUE,
-    once=True,
-)
+        "get_refund_status",
+        FailureType.IMPLICIT_FAILURE,
+        wrong_value=FAILURE_WRONG_VALUE,
+        once=True,
+    )
 
     # ------------------------------------------------------------
     # 5. Create agents
@@ -140,12 +146,13 @@ def main() -> None:
 
     # ------------------------------------------------------------
     # 6. Run Agent A
-    #
-    # First get_refund_status call returns "tuna".
-    # This demonstrates that the baseline agent accepts the
-    # suspicious value without detecting the failure.
     # ------------------------------------------------------------
 
+    # Agent A receives the wrong value "tuna" on its first
+    # get_refund_status call.
+    #
+    # BaselineAgent does not detect the suspicious result
+    # and therefore does not recover.
     with temporarily_wrong_tool(
         tools,
         "get_refund_status",
@@ -157,6 +164,11 @@ def main() -> None:
     # 7. Run Agent B
     # ------------------------------------------------------------
 
+    # Agent B uses:
+    # - failure detection
+    # - trust memory
+    # - backtracking
+    # - alternative tool path
     result_b = recovery_agent.run(task)
 
     # ------------------------------------------------------------
