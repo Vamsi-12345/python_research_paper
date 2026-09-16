@@ -6,6 +6,18 @@ let failureInjected = false;
 let simulationRunning = false;
 
 /*
+   Tracks whether Agent A has already
+   completed at least one run.
+
+   This is important because the Reset
+   button should clear the current trace,
+   but should NOT erase Agent A's result
+   when we are preparing to test Agent B.
+*/
+let baselineHasRun = false;
+
+
+/*
    Store all animation timers.
 
    This allows Reset to cancel any steps
@@ -18,7 +30,8 @@ let activeTimers = [];
    DOM ELEMENTS
 ===================================== */
 
-const trace = document.getElementById("executionTrace");
+const trace =
+    document.getElementById("executionTrace");
 
 const taskStatus =
     document.getElementById("taskStatus");
@@ -47,6 +60,7 @@ function getElement(id) {
 ===================================== */
 
 function setText(id, value) {
+
     const element = getElement(id);
 
     if (element) {
@@ -60,26 +74,33 @@ function setText(id, value) {
 ===================================== */
 
 function schedule(callback, delay) {
+
     const timer = setTimeout(() => {
 
         /*
            Remove timer after execution.
         */
-        activeTimers = activeTimers.filter(
-            item => item !== timer
-        );
+
+        activeTimers =
+            activeTimers.filter(
+                item => item !== timer
+            );
+
 
         /*
            Do not execute old callbacks
            after Reset.
         */
+
         if (!simulationRunning) {
             return;
         }
 
+
         callback();
 
     }, delay);
+
 
     activeTimers.push(timer);
 
@@ -102,7 +123,7 @@ function cancelActiveTimers() {
 
 
 /* =====================================
-   SCROLL
+   SCROLL TO SIMULATION
 ===================================== */
 
 function scrollToSimulation() {
@@ -145,15 +166,24 @@ function addStep(
     const step =
         document.createElement("div");
 
-    step.className = "trace-step";
+
+    step.className =
+        "trace-step";
 
 
-    let resultClass = "";
+    let resultClass;
+
 
     if (type === "failure") {
-        resultClass = "trace-failure";
+
+        resultClass =
+            "trace-failure";
+
     } else {
-        resultClass = "trace-success";
+
+        resultClass =
+            "trace-success";
+
     }
 
 
@@ -189,6 +219,7 @@ function addStep(
        Automatically scroll the latest
        execution step into view.
     */
+
     step.scrollIntoView({
         behavior: "smooth",
         block: "nearest"
@@ -206,6 +237,7 @@ function injectFailure() {
        Do not inject another failure while
        an agent is already executing.
     */
+
     if (simulationRunning) {
         return;
     }
@@ -214,32 +246,46 @@ function injectFailure() {
     failureInjected = true;
 
 
-    failurePanel.classList.remove("hidden");
+    if (failurePanel) {
+        failurePanel.classList.remove("hidden");
+    }
 
 
-    taskStatus.innerText =
-        "FAILURE INJECTED";
+    if (taskStatus) {
 
-    taskStatus.style.background =
-        "#fff0f0";
-
-    taskStatus.style.color =
-        "#c93636";
+        taskStatus.innerText =
+            "FAILURE INJECTED";
 
 
-    executionStatus.innerText =
-        "Failure injected into get_refund_status";
+        taskStatus.style.background =
+            "#fff0f0";
+
+
+        taskStatus.style.color =
+            "#c93636";
+    }
+
+
+    if (executionStatus) {
+
+        executionStatus.innerText =
+            "Failure injected into get_refund_status";
+
+    }
 
 
     /*
-       Reset displayed result cards so the
-       next run starts cleanly.
+       Update result cards.
+
+       IMPORTANT:
+       We do NOT reset Agent A's metrics here.
     */
 
     setText(
         "baselineResult",
         "Failure ready to test"
     );
+
 
     setText(
         "recoveryResult",
@@ -249,7 +295,7 @@ function injectFailure() {
 
 
 /* =====================================
-   RUN BASELINE
+   RUN BASELINE AGENT A
 ===================================== */
 
 function runBaseline() {
@@ -257,6 +303,7 @@ function runBaseline() {
     /*
        Prevent multiple simultaneous runs.
     */
+
     if (simulationRunning) {
         return;
     }
@@ -268,37 +315,47 @@ function runBaseline() {
     clearTrace();
 
 
-    recoveryPanel.classList.add("hidden");
+    if (recoveryPanel) {
+        recoveryPanel.classList.add("hidden");
+    }
 
 
-    executionStatus.innerText =
-        "Agent A executing...";
+    if (executionStatus) {
+
+        executionStatus.innerText =
+            "Agent A executing...";
+
+    }
 
 
-    taskStatus.innerText =
-        "RUNNING";
+    if (taskStatus) {
+
+        taskStatus.innerText =
+            "RUNNING";
 
 
-    taskStatus.style.background =
-        "#eef1f5";
+        taskStatus.style.background =
+            "#eef1f5";
 
-    taskStatus.style.color =
-        "#687487";
+
+        taskStatus.style.color =
+            "#687487";
+    }
 
 
     /*
        Agent A follows only the original route.
 
        account_id
-          ↓
+           ↓
        user_id
-          ↓
+           ↓
        order_id
-          ↓
+           ↓
        return_id
-          ↓
+           ↓
        refund_id
-          ↓
+           ↓
        refund_status
     */
 
@@ -315,6 +372,7 @@ function runBaseline() {
                 "user_1"
         },
 
+
         {
             tool:
                 "get_order_id(user_1)",
@@ -325,6 +383,7 @@ function runBaseline() {
             result:
                 "order_101"
         },
+
 
         {
             tool:
@@ -337,6 +396,7 @@ function runBaseline() {
                 "return_501"
         },
 
+
         {
             tool:
                 "get_refund_id(return_501)",
@@ -347,6 +407,7 @@ function runBaseline() {
             result:
                 "refund_701"
         },
+
 
         {
             tool:
@@ -395,28 +456,42 @@ function runBaseline() {
                     simulationRunning = false;
 
 
+                    /*
+                       Agent A has now completed.
+                    */
+
+                    baselineHasRun = true;
+
+
                     if (failureInjected) {
 
                         /*
-                           Agent A fails because it does
-                           not detect or recover from
-                           the suspicious result.
+                           Agent A does not detect or
+                           recover from the suspicious
+                           result.
                         */
 
-                        executionStatus.innerText =
-                            "Agent A completed without recovery";
+                        if (executionStatus) {
+
+                            executionStatus.innerText =
+                                "Agent A completed without recovery";
+
+                        }
 
 
-                        taskStatus.innerText =
-                            "FAILED";
+                        if (taskStatus) {
+
+                            taskStatus.innerText =
+                                "FAILED";
 
 
-                        taskStatus.style.background =
-                            "#fff0f0";
+                            taskStatus.style.background =
+                                "#fff0f0";
 
 
-                        taskStatus.style.color =
-                            "#c93636";
+                            taskStatus.style.color =
+                                "#c93636";
+                        }
 
 
                         setText(
@@ -436,6 +511,16 @@ function runBaseline() {
                             "0%"
                         );
 
+
+                        /*
+                           Agent A does not recover.
+                        */
+
+                        setText(
+                            "recoveryRateA",
+                            "0%"
+                        );
+
                     } else {
 
                         /*
@@ -443,20 +528,27 @@ function runBaseline() {
                            failure.
                         */
 
-                        executionStatus.innerText =
-                            "Agent A completed";
+                        if (executionStatus) {
+
+                            executionStatus.innerText =
+                                "Agent A completed";
+
+                        }
 
 
-                        taskStatus.innerText =
-                            "COMPLETED";
+                        if (taskStatus) {
+
+                            taskStatus.innerText =
+                                "COMPLETED";
 
 
-                        taskStatus.style.background =
-                            "#eaf8f1";
+                            taskStatus.style.background =
+                                "#eaf8f1";
 
 
-                        taskStatus.style.color =
-                            "#278257";
+                            taskStatus.style.color =
+                                "#278257";
+                        }
 
 
                         setText(
@@ -485,12 +577,11 @@ function runBaseline() {
         }, index * 500);
 
     });
-
 }
 
 
 /* =====================================
-   RUN RECOVERY
+   RUN RECOVERY AGENT B
 ===================================== */
 
 function runRecovery() {
@@ -498,6 +589,7 @@ function runRecovery() {
     /*
        Prevent multiple simultaneous runs.
     */
+
     if (simulationRunning) {
         return;
     }
@@ -510,35 +602,65 @@ function runRecovery() {
 
 
     /*
-       The failure panel is shown because
-       Agent B is demonstrating failure
-       detection.
+       Agent B demonstrates failure-aware
+       recovery.
     */
 
-    failurePanel.classList.remove("hidden");
-
-    recoveryPanel.classList.remove("hidden");
-
-
-    executionStatus.innerText =
-        "Agent B executing with failure recovery...";
+    if (failurePanel) {
+        failurePanel.classList.remove("hidden");
+    }
 
 
-    taskStatus.innerText =
-        "RECOVERING";
+    if (recoveryPanel) {
+        recoveryPanel.classList.remove("hidden");
+    }
 
 
-    taskStatus.style.background =
-        "#fff7e6";
+    if (executionStatus) {
 
-    taskStatus.style.color =
-        "#b7791f";
+        executionStatus.innerText =
+            "Agent B executing with failure recovery...";
+
+    }
+
+
+    if (taskStatus) {
+
+        taskStatus.innerText =
+            "RECOVERING";
+
+
+        taskStatus.style.background =
+            "#fff7e6";
+
+
+        taskStatus.style.color =
+            "#b7791f";
+    }
 
 
     /*
-       Agent B follows the original route,
-       detects the failure, backtracks,
-       and uses the alternative transaction route.
+       Agent B route:
+
+       account_id
+           ↓
+       user_id
+           ↓
+       order_id
+           ↓
+       return_id
+           ↓
+       refund_id
+           ↓
+       refund_status
+           ↓
+       FAILURE DETECTED
+           ↓
+       BACKTRACK
+           ↓
+       transaction_id
+           ↓
+       refund_status
     */
 
     const steps = [
@@ -557,6 +679,7 @@ function runRecovery() {
                 "success"
         },
 
+
         {
             tool:
                 "get_order_id(user_1)",
@@ -570,6 +693,7 @@ function runRecovery() {
             type:
                 "success"
         },
+
 
         {
             tool:
@@ -585,6 +709,7 @@ function runRecovery() {
                 "success"
         },
 
+
         {
             tool:
                 "get_refund_id(return_501)",
@@ -598,6 +723,7 @@ function runRecovery() {
             type:
                 "success"
         },
+
 
         {
             tool:
@@ -613,6 +739,7 @@ function runRecovery() {
                 "failure"
         },
 
+
         {
             tool:
                 "BACKTRACK",
@@ -627,6 +754,7 @@ function runRecovery() {
                 "failure"
         },
 
+
         {
             tool:
                 "get_transaction_id(order_101)",
@@ -640,6 +768,7 @@ function runRecovery() {
             type:
                 "success"
         },
+
 
         {
             tool:
@@ -687,20 +816,27 @@ function runRecovery() {
                        the correct target state.
                     */
 
-                    executionStatus.innerText =
-                        "Agent B successfully recovered";
+                    if (executionStatus) {
+
+                        executionStatus.innerText =
+                            "Agent B successfully recovered";
+
+                    }
 
 
-                    taskStatus.innerText =
-                        "RECOVERED";
+                    if (taskStatus) {
+
+                        taskStatus.innerText =
+                            "RECOVERED";
 
 
-                    taskStatus.style.background =
-                        "#eaf8f1";
+                        taskStatus.style.background =
+                            "#eaf8f1";
 
 
-                    taskStatus.style.color =
-                        "#278257";
+                        taskStatus.style.color =
+                            "#278257";
+                    }
 
 
                     setText(
@@ -710,10 +846,13 @@ function runRecovery() {
 
 
                     /*
-                       Agent B used 8 execution events:
+                       Agent B execution:
+
                        5 original tool calls
                        + 1 backtrack
-                       + 2 recovery tool calls
+                       + 2 recovery calls
+
+                       Total = 8 execution steps
                     */
 
                     setText(
@@ -723,7 +862,8 @@ function runRecovery() {
 
 
                     /*
-                       Correct final task result.
+                       Agent B reached the correct
+                       final result.
                     */
 
                     setText(
@@ -733,11 +873,7 @@ function runRecovery() {
 
 
                     /*
-                       There is ONE actual BACKTRACK
-                       event in the execution trace.
-
-                       Previously this was incorrectly
-                       displayed as 3.
+                       Exactly ONE backtrack.
                     */
 
                     setText(
@@ -755,7 +891,6 @@ function runRecovery() {
                         "100%"
                     );
 
-
                 }, 400);
 
             }
@@ -763,7 +898,6 @@ function runRecovery() {
         }, index * 500);
 
     });
-
 }
 
 
@@ -781,17 +915,19 @@ function resetSimulation() {
 
 
     /*
-       Cancel every pending animation timer.
-
-       This prevents old steps from appearing
-       after Reset.
+       Cancel all pending animation timers.
     */
 
     cancelActiveTimers();
 
 
     /*
-       Reset simulation state.
+       Reset only the CURRENT simulation state.
+
+       Important:
+       failureInjected becomes false,
+       but Agent A's completed comparison
+       metrics are preserved.
     */
 
     failureInjected = false;
@@ -808,44 +944,61 @@ function resetSimulation() {
        Hide failure and recovery panels.
     */
 
-    failurePanel.classList.add("hidden");
+    if (failurePanel) {
+        failurePanel.classList.add("hidden");
+    }
 
-    recoveryPanel.classList.add("hidden");
+
+    if (recoveryPanel) {
+        recoveryPanel.classList.add("hidden");
+    }
 
 
     /*
-       Reset status text.
+       Reset execution status.
     */
 
-    executionStatus.innerText =
-        "Waiting...";
+    if (executionStatus) {
 
+        executionStatus.innerText =
+            "Waiting...";
 
-    taskStatus.innerText =
-        "READY";
-
-
-    taskStatus.style.background =
-        "#eef1f5";
-
-
-    taskStatus.style.color =
-        "#687487";
+    }
 
 
     /*
-       Reset Agent A result.
+       Reset task status.
+    */
+
+    if (taskStatus) {
+
+        taskStatus.innerText =
+            "READY";
+
+
+        taskStatus.style.background =
+            "#eef1f5";
+
+
+        taskStatus.style.color =
+            "#687487";
+    }
+
+
+    /*
+       Reset result messages.
+
+       These are only status messages;
+       Agent A's actual metrics are preserved.
     */
 
     setText(
         "baselineResult",
-        "Ready to run"
+        baselineHasRun
+            ? "Previous result preserved"
+            : "Ready to run"
     );
 
-
-    /*
-       Reset Agent B result.
-    */
 
     setText(
         "recoveryResult",
@@ -854,28 +1007,50 @@ function resetSimulation() {
 
 
     /*
-       Reset accuracy.
+       IMPORTANT:
+
+       If Agent A has NOT been run yet,
+       initialize Agent A metrics.
+
+       If Agent A HAS already been run,
+       DO NOT overwrite its metrics.
+
+       This fixes the problem where:
+
+       Test 1:
+       Agent A = 0%, 5 steps
+
+       Reset
+
+       Test 2:
+       Agent A was incorrectly changed
+       to 0 steps.
     */
 
-    setText(
-        "accuracyA",
-        "0%"
-    );
+    if (!baselineHasRun) {
 
+        setText(
+            "accuracyA",
+            "0%"
+        );
+
+
+        setText(
+            "stepsA",
+            "0"
+        );
+
+    }
+
+
+    /*
+       Agent B is reset because we are preparing
+       for a new recovery test.
+    */
 
     setText(
         "accuracyB",
         "0%"
-    );
-
-
-    /*
-       Reset tool-call counts.
-    */
-
-    setText(
-        "stepsA",
-        "0"
     );
 
 
@@ -885,22 +1060,11 @@ function resetSimulation() {
     );
 
 
-    /*
-       Correct initial backtrack value.
-
-       No agent has run yet, so:
-       Backtracks = 0
-    */
-
     setText(
         "backtracks",
         "0"
     );
 
-
-    /*
-       No recovery has happened yet.
-    */
 
     setText(
         "recoveryRate",
@@ -936,9 +1100,14 @@ document.addEventListener(
 
 
         /*
-           Ensure the page starts in a
-           completely clean state.
+           First page load.
+
+           baselineHasRun is false, so
+           all metrics start from zero.
         */
+
+        baselineHasRun = false;
+
 
         resetSimulation();
 
