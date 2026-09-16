@@ -1,39 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Adaptive Tool-Use Agent</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
 </head>
+
 
 <body>
 
-<!-- ================= NAVBAR ================= -->
+
+<!-- =========================================================
+     NAVBAR
+========================================================= -->
 
 <header class="navbar">
 
     <div class="logo">
-        <span class="logo-icon">AI</span>
-        <span>Adaptive Agent</span>
+
+        <span class="logo-icon">
+            AI
+        </span>
+
+        <span>
+            Adaptive Agent
+        </span>
+
     </div>
 
+
     <nav>
-        <a href="#home">Home</a>
-        <a href="#architecture">Architecture</a>
-        <a href="#simulation">Simulation</a>
-        <a href="#comparison">Comparison</a>
-        <a href="#files">Python Files</a>
+
+        <a href="#home">
+            Home
+        </a>
+
+        <a href="#architecture">
+            Architecture
+        </a>
+
+        <a href="#simulation">
+            Simulation
+        </a>
+
+        <a href="#comparison">
+            Comparison
+        </a>
+
+        <a href="#files">
+            Python Files
+        </a>
+
     </nav>
 
 </header>
 
 
-<!-- ================= HERO ================= -->
 
-<section id="home" class="hero">
+<!-- =========================================================
+     HERO
+========================================================= -->
+
+<section
+    id="home"
+    class="hero"
+>
 
     <div class="hero-content">
 
@@ -41,59 +85,108 @@
             PLANBENCH-XL INSPIRED PROJECT
         </div>
 
+
         <h1>
+
             Adaptive Tool-Use Agent
-            <span>for Long-Horizon Planning</span>
+
+            <span>
+                for Long-Horizon Planning
+            </span>
+
         </h1>
 
+
         <p class="hero-description">
+
             A failure-aware tool-use environment that evaluates how an
             intelligent agent detects tool failures, remembers unreliable
             routes, backtracks, and recovers using alternative tools.
+
         </p>
+
 
         <div class="hero-buttons">
 
-            <button class="primary-btn" onclick="runRecovery()">
+            <button
+                class="primary-btn"
+                onclick="runRecovery()"
+            >
+
                 Run Recovery Agent
+
             </button>
 
-            <button class="secondary-btn" onclick="scrollToSimulation()">
+
+            <button
+                class="secondary-btn"
+                onclick="scrollToSimulation()"
+            >
+
                 Explore Simulation
+
             </button>
 
         </div>
 
     </div>
+
 
 
     <div class="hero-card">
 
         <div class="status-header">
+
             <span class="status-dot"></span>
+
             SYSTEM READY
+
         </div>
+
 
         <div class="terminal">
 
             <p>
-                <span class="green">></span>
+
+                <span class="green">
+                    >
+                </span>
+
                 Initializing task...
+
             </p>
 
+
             <p>
-                <span class="green">></span>
+
+                <span class="green">
+                    >
+                </span>
+
                 Loading tool graph...
+
             </p>
 
+
             <p>
-                <span class="green">></span>
+
+                <span class="green">
+                    >
+                </span>
+
                 Failure-aware agent ready
+
             </p>
 
+
             <p>
-                <span class="yellow">></span>
+
+                <span class="yellow">
+                    >
+                </span>
+
                 Waiting for execution...
+
             </p>
 
         </div>
@@ -103,78 +196,127 @@
 </section>
 
 
-<!-- ================= PROJECT OVERVIEW ================= -->
+
+<!-- =========================================================
+     PROJECT OVERVIEW
+========================================================= -->
 
 <section class="section">
 
+
     <div class="section-title">
 
-        <span>01</span>
+        <span>
+            01
+        </span>
+
 
         <div>
-            <h2>Project Overview</h2>
+
+            <h2>
+                Project Overview
+            </h2>
+
 
             <p>
                 Understanding the problem and the proposed solution.
             </p>
+
         </div>
 
     </div>
+
 
 
     <div class="overview-grid">
 
+
         <div class="info-card">
 
-            <div class="card-icon">01</div>
+            <div class="card-icon">
+                01
+            </div>
 
-            <h3>Tool Selection</h3>
+
+            <h3>
+                Tool Selection
+            </h3>
+
 
             <p>
+
                 Select appropriate tools based on the current state
                 and required target state.
+
             </p>
 
         </div>
 
 
+
         <div class="info-card">
 
-            <div class="card-icon">02</div>
+            <div class="card-icon">
+                02
+            </div>
 
-            <h3>Long-Horizon Planning</h3>
+
+            <h3>
+                Long-Horizon Planning
+            </h3>
+
 
             <p>
+
                 Tasks require multiple sequential tool calls before
                 reaching the final objective.
+
             </p>
 
         </div>
 
 
+
         <div class="info-card">
 
-            <div class="card-icon">03</div>
+            <div class="card-icon">
+                03
+            </div>
 
-            <h3>Failure Detection</h3>
+
+            <h3>
+                Failure Detection
+            </h3>
+
 
             <p>
+
                 The system identifies explicit failures and suspicious
                 or non-progressing tool results.
+
             </p>
 
         </div>
 
 
+
         <div class="info-card">
 
-            <div class="card-icon">04</div>
+            <div class="card-icon">
+                04
+            </div>
 
-            <h3>Recovery</h3>
+
+            <h3>
+                Recovery
+            </h3>
+
 
             <p>
+
                 The recovery agent can backtrack and select an
                 alternative route when a tool fails.
+
             </p>
 
         </div>
@@ -184,88 +326,188 @@
 </section>
 
 
-<!-- ================= ARCHITECTURE ================= -->
 
-<section id="architecture" class="section dark-section">
+<!-- =========================================================
+     ARCHITECTURE / TOOL GRAPH
+========================================================= -->
+
+<section
+    id="architecture"
+    class="section dark-section"
+>
+
 
     <div class="section-title">
 
-        <span>02</span>
+        <span>
+            02
+        </span>
+
 
         <div>
-            <h2>Tool Graph</h2>
+
+            <h2>
+                Tool Graph
+            </h2>
+
 
             <p>
+
                 The planning environment represents tools as transitions
                 between states.
+
             </p>
+
         </div>
 
     </div>
+
 
 
     <div class="graph-container">
 
-        <div class="graph-node">
-            <strong>account_id</strong>
-            <small>Initial State</small>
-        </div>
-
-        <div class="arrow">→</div>
 
         <div class="graph-node">
-            <strong>user_id</strong>
-            <small>get_user_by_account</small>
+
+            <strong>
+                account_id
+            </strong>
+
+            <small>
+                Initial State
+            </small>
+
         </div>
 
-        <div class="arrow">→</div>
+
+        <div class="arrow">
+            →
+        </div>
+
 
         <div class="graph-node">
-            <strong>order_id</strong>
-            <small>get_order_id</small>
+
+            <strong>
+                user_id
+            </strong>
+
+            <small>
+                get_user_by_account
+            </small>
+
         </div>
 
-        <div class="arrow">→</div>
+
+        <div class="arrow">
+            →
+        </div>
+
 
         <div class="graph-node">
-            <strong>return_id</strong>
-            <small>get_return_id</small>
+
+            <strong>
+                order_id
+            </strong>
+
+            <small>
+                get_order_id
+            </small>
+
         </div>
 
-        <div class="arrow">→</div>
+
+        <div class="arrow">
+            →
+        </div>
+
 
         <div class="graph-node">
-            <strong>refund_id</strong>
-            <small>get_refund_id</small>
+
+            <strong>
+                return_id
+            </strong>
+
+            <small>
+                get_return_id
+            </small>
+
         </div>
 
-        <div class="arrow">→</div>
+
+        <div class="arrow">
+            →
+        </div>
+
+
+        <div class="graph-node">
+
+            <strong>
+                refund_id
+            </strong>
+
+            <small>
+                get_refund_id
+            </small>
+
+        </div>
+
+
+        <div class="arrow">
+            →
+        </div>
+
 
         <div class="graph-node success-node">
-            <strong>refund_status</strong>
-            <small>get_refund_status</small>
+
+            <strong>
+                refund_status
+            </strong>
+
+            <small>
+                get_refund_status
+            </small>
+
         </div>
 
     </div>
 
 
+
     <div class="alternative-route">
 
+
         <div class="route-label">
+
             ALTERNATIVE RECOVERY ROUTE
+
         </div>
+
 
         <div class="recovery-flow">
 
-            <span>order_id</span>
+            <span>
+                order_id
+            </span>
 
-            <b>→</b>
 
-            <span>transaction_id</span>
+            <b>
+                →
+            </b>
 
-            <b>→</b>
 
-            <span>refund_status</span>
+            <span>
+                transaction_id
+            </span>
+
+
+            <b>
+                →
+            </b>
+
+
+            <span>
+                refund_status
+            </span>
 
         </div>
 
@@ -274,57 +516,99 @@
 </section>
 
 
-<!-- ================= AGENT ARCHITECTURE ================= -->
+
+<!-- =========================================================
+     AGENT ARCHITECTURE
+========================================================= -->
 
 <section class="section">
 
+
     <div class="section-title">
 
-        <span>03</span>
+        <span>
+            03
+        </span>
+
 
         <div>
-            <h2>Agent Architecture</h2>
+
+            <h2>
+                Agent Architecture
+            </h2>
+
 
             <p>
                 Two agents are evaluated under the same environment.
             </p>
+
         </div>
 
     </div>
 
 
+
     <div class="agent-grid">
 
-        <!-- BASELINE -->
+
+        <!-- ================= AGENT A ================= -->
 
         <div class="agent-card baseline-card">
 
+
             <div class="agent-header">
 
+
                 <div>
-                    <span class="agent-label">AGENT A</span>
-                    <h3>Baseline Agent</h3>
+
+                    <span class="agent-label">
+                        AGENT A
+                    </span>
+
+
+                    <h3>
+                        Baseline Agent
+                    </h3>
+
                 </div>
 
-                <span class="agent-status">BASELINE</span>
+
+                <span class="agent-status">
+                    BASELINE
+                </span>
 
             </div>
 
+
             <ul>
 
-                <li>Basic tool selection</li>
+                <li>
+                    Basic tool selection
+                </li>
 
-                <li>No trust memory</li>
+                <li>
+                    No trust memory
+                </li>
 
-                <li>No failure classifier</li>
+                <li>
+                    No failure classifier
+                </li>
 
-                <li>No intelligent backtracking</li>
+                <li>
+                    No intelligent backtracking
+                </li>
 
-                <li>Continues using planned route</li>
+                <li>
+                    Continues using planned route
+                </li>
 
             </ul>
 
-            <div class="agent-result" id="baselineResult">
+
+            <div
+                class="agent-result"
+                id="baselineResult"
+            >
 
                 Ready to run
 
@@ -333,38 +617,67 @@
         </div>
 
 
-        <!-- RECOVERY -->
+
+        <!-- ================= AGENT B ================= -->
 
         <div class="agent-card recovery-card">
 
+
             <div class="agent-header">
 
+
                 <div>
-                    <span class="agent-label">AGENT B</span>
-                    <h3>Recovery Agent</h3>
+
+                    <span class="agent-label">
+                        AGENT B
+                    </span>
+
+
+                    <h3>
+                        Recovery Agent
+                    </h3>
+
                 </div>
 
-                <span class="agent-status success-status">
+
+                <span
+                    class="agent-status success-status"
+                >
                     FAILURE-AWARE
                 </span>
 
             </div>
 
+
             <ul>
 
-                <li>Failure detection</li>
+                <li>
+                    Failure detection
+                </li>
 
-                <li>Result classification</li>
+                <li>
+                    Result classification
+                </li>
 
-                <li>Trust memory</li>
+                <li>
+                    Trust memory
+                </li>
 
-                <li>Backtracking</li>
+                <li>
+                    Backtracking
+                </li>
 
-                <li>Alternative route selection</li>
+                <li>
+                    Alternative route selection
+                </li>
 
             </ul>
 
-            <div class="agent-result" id="recoveryResult">
+
+            <div
+                class="agent-result"
+                id="recoveryResult"
+            >
 
                 Ready to run
 
@@ -377,69 +690,200 @@
 </section>
 
 
-<!-- ================= SIMULATION ================= -->
 
-<section id="simulation" class="section simulation-section">
+<!-- =========================================================
+     INTERACTIVE SIMULATION
+========================================================= -->
+
+<section
+    id="simulation"
+    class="section simulation-section"
+>
+
 
     <div class="section-title">
 
-        <span>04</span>
+        <span>
+            04
+        </span>
+
 
         <div>
-            <h2>Interactive Simulation</h2>
+
+            <h2>
+                Interactive Simulation
+            </h2>
+
 
             <p>
-                Simulate a long-horizon task and observe how each
+
+                Simulate long-horizon tasks and observe how each
                 agent reacts to a tool failure.
+
             </p>
+
         </div>
 
     </div>
 
 
-    <!-- TASK -->
+
+    <!-- =====================================================
+         TASK SELECTOR
+    ====================================================== -->
+
+    <div class="task-selector">
+
+
+        <label for="taskSelect">
+
+            Select Experimental Task
+
+        </label>
+
+
+        <select
+            id="taskSelect"
+            onchange="changeTask()"
+        >
+
+            <option value="T001">
+                T001 — Refund Status Retrieval
+            </option>
+
+
+            <option value="T002">
+                T002 — Refund Status Retrieval
+            </option>
+
+
+            <option value="T003">
+                T003 — Refund Status Retrieval
+            </option>
+
+
+            <option value="T004">
+                T004 — Refund Status Retrieval
+            </option>
+
+
+            <option value="T005">
+                T005 — Refund Status Retrieval
+            </option>
+
+        </select>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         TASK INFORMATION
+    ====================================================== -->
 
     <div class="task-panel">
 
+
         <div class="task-header">
+
 
             <div>
 
-                <span class="mini-label">
+                <span
+                    class="mini-label"
+                    id="taskLabel"
+                >
                     TASK T001
                 </span>
 
-                <h3>Refund Status Retrieval</h3>
+
+                <h3 id="taskTitle">
+
+                    Refund Status Retrieval
+
+                </h3>
 
             </div>
 
-            <span class="task-status" id="taskStatus">
+
+            <span
+                class="task-status"
+                id="taskStatus"
+            >
                 READY
             </span>
 
         </div>
 
 
+
         <div class="task-details">
 
-            <div>
-                <span>Initial State</span>
-                <strong>account_id = acc_001</strong>
-            </div>
 
             <div>
-                <span>Target State</span>
-                <strong>refund_status</strong>
+
+                <span>
+                    Initial State
+                </span>
+
+
+                <strong id="initialState">
+
+                    account_id = acc_001
+
+                </strong>
+
             </div>
 
-            <div>
-                <span>Minimum Steps</span>
-                <strong>5</strong>
-            </div>
+
 
             <div>
-                <span>Injected Failure</span>
-                <strong>Implicit Failure</strong>
+
+                <span>
+                    Target State
+                </span>
+
+
+                <strong id="targetState">
+
+                    refund_status
+
+                </strong>
+
+            </div>
+
+
+
+            <div>
+
+                <span>
+                    Minimum Steps
+                </span>
+
+
+                <strong id="minimumSteps">
+
+                    5
+
+                </strong>
+
+            </div>
+
+
+
+            <div>
+
+                <span>
+                    Injected Failure
+                </span>
+
+
+                <strong id="injectedFailure">
+
+                    Implicit Failure
+
+                </strong>
+
             </div>
 
         </div>
@@ -447,64 +891,101 @@
     </div>
 
 
-    <!-- CONTROLS -->
+
+    <!-- =====================================================
+         CONTROLS
+    ====================================================== -->
 
     <div class="simulation-controls">
 
+
         <button
             class="primary-btn"
-            onclick="runBaseline()">
+            onclick="runBaseline()"
+        >
 
             Run Agent A
 
         </button>
 
 
+
         <button
             class="recovery-button"
-            onclick="runRecovery()">
+            onclick="runRecovery()"
+        >
 
             Run Agent B
 
         </button>
 
 
+
         <button
             class="danger-button"
-            onclick="injectFailure()">
+            onclick="injectFailure()"
+        >
 
             Inject Failure
 
         </button>
 
 
+
         <button
             class="reset-button"
-            onclick="resetSimulation()">
+            onclick="resetSimulation()"
+        >
 
             Reset
+
+        </button>
+
+
+
+        <button
+            class="secondary-btn"
+            onclick="runAllTasks()"
+        >
+
+            Run All 5 Tasks
 
         </button>
 
     </div>
 
 
-    <!-- EXECUTION -->
+
+    <!-- =====================================================
+         EXECUTION TRACE
+    ====================================================== -->
 
     <div class="execution-panel">
 
+
         <div class="execution-header">
 
-            <h3>Execution Trace</h3>
+
+            <h3>
+                Execution Trace
+            </h3>
+
 
             <span id="executionStatus">
+
                 Waiting...
+
             </span>
 
         </div>
 
 
-        <div id="executionTrace" class="execution-trace">
+
+        <div
+            id="executionTrace"
+            class="execution-trace"
+        >
+
 
             <div class="empty-state">
 
@@ -512,28 +993,43 @@
 
             </div>
 
+
         </div>
 
     </div>
 
 
-    <!-- FAILURE -->
+
+    <!-- =====================================================
+         FAILURE PANEL
+    ====================================================== -->
 
     <div
         id="failurePanel"
-        class="failure-panel hidden">
+        class="failure-panel hidden"
+    >
+
 
         <div class="failure-icon">
+
             !
+
         </div>
+
 
         <div>
 
-            <strong>Tool Failure Detected</strong>
+
+            <strong>
+                Tool Failure Detected
+            </strong>
+
 
             <p>
+
                 get_refund_status returned a suspicious result:
                 <b>"tuna"</b>
+
             </p>
 
         </div>
@@ -541,48 +1037,92 @@
     </div>
 
 
-    <!-- RECOVERY -->
+
+    <!-- =====================================================
+         RECOVERY PANEL
+    ====================================================== -->
 
     <div
         id="recoveryPanel"
-        class="recovery-panel hidden">
+        class="recovery-panel hidden"
+    >
+
 
         <div class="recovery-title">
 
-            <span>RECOVERY PROCESS</span>
+            <span>
+                RECOVERY PROCESS
+            </span>
 
         </div>
 
+
         <div class="recovery-steps">
 
+
             <div>
-                <b>1</b>
+
+                <b>
+                    1
+                </b>
+
                 Failure classified as NON_PROGRESS
+
             </div>
 
+
             <div>
-                <b>2</b>
+
+                <b>
+                    2
+                </b>
+
                 Trust memory updated
+
             </div>
 
+
             <div>
-                <b>3</b>
+
+                <b>
+                    3
+                </b>
+
                 Previous route rejected
+
             </div>
 
+
             <div>
-                <b>4</b>
+
+                <b>
+                    4
+                </b>
+
                 Agent backtracked
+
             </div>
 
+
             <div>
-                <b>5</b>
+
+                <b>
+                    5
+                </b>
+
                 Alternative tool selected
+
             </div>
 
+
             <div>
-                <b>6</b>
+
+                <b>
+                    6
+                </b>
+
                 Correct refund status obtained
+
             </div>
 
         </div>
@@ -592,42 +1132,84 @@
 </section>
 
 
-<!-- ================= METRICS ================= -->
 
-<section id="comparison" class="section dark-section">
+<!-- =========================================================
+     EVALUATION METRICS
+========================================================= -->
+
+<section
+    id="comparison"
+    class="section dark-section"
+>
+
 
     <div class="section-title">
 
-        <span>05</span>
+        <span>
+            05
+        </span>
+
 
         <div>
-            <h2>Evaluation Metrics</h2>
+
+            <h2>
+                Evaluation Metrics
+            </h2>
+
 
             <p>
+
                 Compare the behaviour of the baseline and recovery agents.
+
             </p>
+
         </div>
 
     </div>
+
 
 
     <div class="metrics-grid">
 
 
+        <!-- ================= ACCURACY ================= -->
+
         <div class="metric-card">
 
-            <span>Task Accuracy</span>
+
+            <span>
+                Task Accuracy
+            </span>
+
 
             <div class="metric-values">
 
-                <div>
-                    <small>Agent A</small>
-                    <strong id="accuracyA">0%</strong>
-                </div>
 
                 <div>
-                    <small>Agent B</small>
-                    <strong id="accuracyB">0%</strong>
+
+                    <small>
+                        Agent A
+                    </small>
+
+
+                    <strong id="accuracyA">
+                        0%
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        Agent B
+                    </small>
+
+
+                    <strong id="accuracyB">
+                        0%
+                    </strong>
+
                 </div>
 
             </div>
@@ -635,20 +1217,45 @@
         </div>
 
 
+
+        <!-- ================= RECOVERY ================= -->
+
         <div class="metric-card">
 
-            <span>Recovery Rate</span>
+
+            <span>
+                Recovery Rate
+            </span>
+
 
             <div class="metric-values">
 
-                <div>
-                    <small>Agent A</small>
-                    <strong>0%</strong>
-                </div>
 
                 <div>
-                    <small>Agent B</small>
-                    <strong id="recoveryRate">100%</strong>
+
+                    <small>
+                        Agent A
+                    </small>
+
+
+                    <strong id="recoveryRateA">
+                        0%
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        Agent B
+                    </small>
+
+
+                    <strong id="recoveryRate">
+                        0%
+                    </strong>
+
                 </div>
 
             </div>
@@ -656,20 +1263,45 @@
         </div>
 
 
+
+        <!-- ================= STEPS ================= -->
+
         <div class="metric-card">
 
-            <span>Average Steps</span>
+
+            <span>
+                Average Steps
+            </span>
+
 
             <div class="metric-values">
 
-                <div>
-                    <small>Agent A</small>
-                    <strong id="stepsA">0</strong>
-                </div>
 
                 <div>
-                    <small>Agent B</small>
-                    <strong id="stepsB">0</strong>
+
+                    <small>
+                        Agent A
+                    </small>
+
+
+                    <strong id="stepsA">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        Agent B
+                    </small>
+
+
+                    <strong id="stepsB">
+                        0
+                    </strong>
+
                 </div>
 
             </div>
@@ -677,20 +1309,45 @@
         </div>
 
 
+
+        <!-- ================= BACKTRACKS ================= -->
+
         <div class="metric-card">
 
-            <span>Backtracks</span>
+
+            <span>
+                Backtracks
+            </span>
+
 
             <div class="metric-values">
 
-                <div>
-                    <small>Agent A</small>
-                    <strong>0</strong>
-                </div>
 
                 <div>
-                    <small>Agent B</small>
-                    <strong id="backtracks">3</strong>
+
+                    <small>
+                        Agent A
+                    </small>
+
+
+                    <strong id="backtracksA">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <small>
+                        Agent B
+                    </small>
+
+
+                    <strong id="backtracks">
+                        0
+                    </strong>
+
                 </div>
 
             </div>
@@ -700,75 +1357,142 @@
     </div>
 
 
+
+    <!-- =====================================================
+         AGENT COMPARISON TABLE
+    ====================================================== -->
+
     <div class="comparison-table-wrapper">
 
+
         <table>
+
 
             <thead>
 
                 <tr>
 
-                    <th>Metric</th>
+                    <th>
+                        Metric
+                    </th>
 
-                    <th>Agent A — Baseline</th>
 
-                    <th>Agent B — Recovery</th>
+                    <th>
+                        Agent A — Baseline
+                    </th>
+
+
+                    <th>
+                        Agent B — Recovery
+                    </th>
 
                 </tr>
 
             </thead>
 
+
+
             <tbody>
 
-                <tr>
-
-                    <td>Failure Detection</td>
-
-                    <td class="bad">No</td>
-
-                    <td class="good">Yes</td>
-
-                </tr>
 
                 <tr>
 
-                    <td>Result Classification</td>
+                    <td>
+                        Failure Detection
+                    </td>
 
-                    <td class="bad">No</td>
 
-                    <td class="good">Yes</td>
+                    <td class="bad">
+                        No
+                    </td>
+
+
+                    <td class="good">
+                        Yes
+                    </td>
 
                 </tr>
+
+
 
                 <tr>
 
-                    <td>Trust Memory</td>
+                    <td>
+                        Result Classification
+                    </td>
 
-                    <td class="bad">No</td>
 
-                    <td class="good">Yes</td>
+                    <td class="bad">
+                        No
+                    </td>
+
+
+                    <td class="good">
+                        Yes
+                    </td>
 
                 </tr>
+
+
 
                 <tr>
 
-                    <td>Backtracking</td>
+                    <td>
+                        Trust Memory
+                    </td>
 
-                    <td class="bad">No</td>
 
-                    <td class="good">Yes</td>
+                    <td class="bad">
+                        No
+                    </td>
+
+
+                    <td class="good">
+                        Yes
+                    </td>
 
                 </tr>
+
+
 
                 <tr>
 
-                    <td>Alternative Route</td>
+                    <td>
+                        Backtracking
+                    </td>
 
-                    <td class="bad">No</td>
 
-                    <td class="good">Yes</td>
+                    <td class="bad">
+                        No
+                    </td>
+
+
+                    <td class="good">
+                        Yes
+                    </td>
 
                 </tr>
+
+
+
+                <tr>
+
+                    <td>
+                        Alternative Route
+                    </td>
+
+
+                    <td class="bad">
+                        No
+                    </td>
+
+
+                    <td class="good">
+                        Yes
+                    </td>
+
+                </tr>
+
 
             </tbody>
 
@@ -779,20 +1503,33 @@
 </section>
 
 
-<!-- ================= ERROR TYPES ================= -->
+
+<!-- =========================================================
+     FAILURE TAXONOMY
+========================================================= -->
 
 <section class="section">
 
+
     <div class="section-title">
 
-        <span>06</span>
+
+        <span>
+            06
+        </span>
+
 
         <div>
 
-            <h2>Failure Taxonomy</h2>
+            <h2>
+                Failure Taxonomy
+            </h2>
+
 
             <p>
+
                 Failure types considered by the evaluation environment.
+
             </p>
 
         </div>
@@ -800,59 +1537,100 @@
     </div>
 
 
+
     <div class="failure-grid">
 
+
         <div class="taxonomy-card">
 
-            <span>01</span>
 
-            <h3>No Traction</h3>
+            <span>
+                01
+            </span>
+
+
+            <h3>
+                No Traction
+            </h3>
+
 
             <p>
+
                 The agent makes tool calls without meaningful progress
                 toward the target state.
+
             </p>
 
         </div>
 
 
+
         <div class="taxonomy-card">
 
-            <span>02</span>
 
-            <h3>Irrecoverable Drift</h3>
+            <span>
+                02
+            </span>
+
+
+            <h3>
+                Irrecoverable Drift
+            </h3>
+
 
             <p>
+
                 The execution moves away from the valid route and
                 cannot recover without restarting or backtracking.
+
             </p>
 
         </div>
 
 
+
         <div class="taxonomy-card">
 
-            <span>03</span>
 
-            <h3>Weak Recovery</h3>
+            <span>
+                03
+            </span>
+
+
+            <h3>
+                Weak Recovery
+            </h3>
+
 
             <p>
+
                 The agent detects a problem but does not efficiently
                 recover using an alternative path.
+
             </p>
 
         </div>
 
 
+
         <div class="taxonomy-card">
 
-            <span>04</span>
 
-            <h3>Format Error</h3>
+            <span>
+                04
+            </span>
+
+
+            <h3>
+                Format Error
+            </h3>
+
 
             <p>
+
                 A tool produces an output that does not match the
                 expected result format.
+
             </p>
 
         </div>
@@ -862,246 +1640,430 @@
 </section>
 
 
-<!-- ================= PYTHON FILES ================= -->
 
-<section id="files" class="section dark-section">
+<!-- =========================================================
+     PYTHON IMPLEMENTATION
+========================================================= -->
+
+<section
+    id="files"
+    class="section dark-section"
+>
+
 
     <div class="section-title">
 
-        <span>07</span>
+
+        <span>
+            07
+        </span>
+
 
         <div>
 
-            <h2>Python Implementation</h2>
+            <h2>
+                Python Implementation
+            </h2>
+
 
             <p>
+
                 Source files used to implement the planning and
                 failure-recovery environment.
+
             </p>
 
         </div>
 
     </div>
+
 
 
     <div class="file-grid">
 
 
-        <a href="agent_baseline.py"
-           target="_blank"
-           class="file-card">
+        <a
+            href="agent_baseline.py"
+            target="_blank"
+            class="file-card"
+        >
 
-            <div class="file-icon">PY</div>
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>agent_baseline.py</h3>
+                <h3>
+                    agent_baseline.py
+                </h3>
 
-                <p>Baseline agent implementation</p>
+
+                <p>
+                    Baseline agent implementation
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="agent_recovery.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="agent_recovery.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>agent_recovery.py</h3>
+                <h3>
+                    agent_recovery.py
+                </h3>
 
-                <p>Failure-aware recovery agent</p>
+
+                <p>
+                    Failure-aware recovery agent
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="evaluator.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="evaluator.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>evaluator.py</h3>
+                <h3>
+                    evaluator.py
+                </h3>
 
-                <p>Evaluation and comparison metrics</p>
+
+                <p>
+                    Evaluation and comparison metrics
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="failures.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="failures.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>failures.py</h3>
+                <h3>
+                    failures.py
+                </h3>
 
-                <p>Failure injection framework</p>
+
+                <p>
+                    Failure injection framework
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="graph.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="graph.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>graph.py</h3>
+                <h3>
+                    graph.py
+                </h3>
 
-                <p>Tool-state graph</p>
+
+                <p>
+                    Tool-state graph
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="main.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="main.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>main.py</h3>
+                <h3>
+                    main.py
+                </h3>
 
-                <p>Main experiment runner</p>
+
+                <p>
+                    Main experiment runner
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="result_classifier.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="result_classifier.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>result_classifier.py</h3>
+                <h3>
+                    result_classifier.py
+                </h3>
 
-                <p>Tool-result classification</p>
+
+                <p>
+                    Tool-result classification
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="search.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="search.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>search.py</h3>
+                <h3>
+                    search.py
+                </h3>
 
-                <p>DFS planning engine</p>
+
+                <p>
+                    DFS planning engine
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="task.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="task.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>task.py</h3>
+                <h3>
+                    task.py
+                </h3>
 
-                <p>Task definition</p>
+
+                <p>
+                    Task definition
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="tools.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="tools.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>tools.py</h3>
+                <h3>
+                    tools.py
+                </h3>
 
-                <p>Tool implementations and hidden data</p>
+
+                <p>
+                    Tool implementations and hidden data
+                </p>
 
             </div>
 
         </a>
 
 
-        <a href="trust_memory.py"
-           target="_blank"
-           class="file-card">
 
-            <div class="file-icon">PY</div>
+        <a
+            href="trust_memory.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
 
             <div>
 
-                <h3>trust_memory.py</h3>
+                <h3>
+                    trust_memory.py
+                </h3>
 
-                <p>Tool reliability memory</p>
+
+                <p>
+                    Tool reliability memory
+                </p>
 
             </div>
 
         </a>
 
+
+
+        <a
+            href="tasks.py"
+            target="_blank"
+            class="file-card"
+        >
+
+            <div class="file-icon">
+                PY
+            </div>
+
+
+            <div>
+
+                <h3>
+                    tasks.py
+                </h3>
+
+
+                <p>
+                    Experimental task collection
+                </p>
+
+            </div>
+
+        </a>
 
     </div>
 
 </section>
 
 
-<!-- ================= FOOTER ================= -->
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
 
 <footer>
 
+
     <div class="footer-logo">
+
         Adaptive Tool-Use Agent
+
     </div>
 
+
     <p>
+
         A simplified failure-aware tool-use environment inspired by
         long-horizon planning benchmarks.
+
     </p>
+
 
     <div class="footer-line"></div>
 
+
     <p class="copyright">
+
         © 2026 Adaptive Tool-Use Agent Project
+
     </p>
 
 </footer>
 
 
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
 <script src="script.js"></script>
 
+
 </body>
+
 </html>
