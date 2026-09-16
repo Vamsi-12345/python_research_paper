@@ -40,7 +40,7 @@ def get_all_tasks():
     tasks = [
 
         # ---------------------------------------------------------
-        # T001 - Normal refund status retrieval
+        # T001 - Standard long-horizon refund retrieval
         # ---------------------------------------------------------
         Task(
             task_id="T001",
@@ -52,8 +52,8 @@ def get_all_tasks():
         ),
 
         # ---------------------------------------------------------
-        # T002 - Refund status retrieval with same account
-        # Used to test repeated execution behaviour.
+        # T002 - Long-horizon refund retrieval
+        # Used to evaluate repeated failure-aware execution.
         # ---------------------------------------------------------
         Task(
             task_id="T002",
@@ -65,8 +65,9 @@ def get_all_tasks():
         ),
 
         # ---------------------------------------------------------
-        # T003 - Refund status retrieval starting from user_id
-        # This tests a shorter starting state.
+        # T003 - Start from user_id
+        # This removes the account lookup step and creates
+        # a shorter planning problem.
         # ---------------------------------------------------------
         Task(
             task_id="T003",
@@ -78,7 +79,8 @@ def get_all_tasks():
         ),
 
         # ---------------------------------------------------------
-        # T004 - Refund status retrieval for another user
+        # T004 - Standard account-based recovery task
+        # Used to demonstrate failure detection and backtracking.
         # ---------------------------------------------------------
         Task(
             task_id="T004",
@@ -90,9 +92,9 @@ def get_all_tasks():
         ),
 
         # ---------------------------------------------------------
-        # T005 - Recovery-oriented refund status task
-        # The agent should be able to use the alternative
-        # transaction route if the normal route fails.
+        # T005 - Recovery-oriented long-horizon task
+        # The recovery agent can use the transaction route
+        # when the normal refund route becomes unreliable.
         # ---------------------------------------------------------
         Task(
             task_id="T005",
@@ -115,6 +117,7 @@ def get_task_by_id(task_id: str):
     """
 
     for task in get_all_tasks():
+
         if task.task_id == task_id:
             return task
 
