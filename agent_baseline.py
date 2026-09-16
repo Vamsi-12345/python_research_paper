@@ -45,27 +45,40 @@ def _execute_tool(from_state: str, tool_name: str, value: Any) -> Any:
     Raises tools.ToolLookupError (or lets it propagate) on failure --
     the baseline agent does not catch/interpret it beyond stopping.
     """
+
+    # account_id -> user_id
+    if from_state == "account_id":
+        return tools.get_user_by_account(value)
+
+    # user_id -> order_id
     if from_state == "user_id":
         # user_id -> order_id (take the first order, no smart selection)
         orders = tools.get_orders_by_user(value)
         return orders[0] if orders else None
 
+    # order_id -> return_id
     if from_state == "order_id" and tool_name == "get_return_id":
         return tools.get_return_by_order(value)
 
+    # order_id -> transaction_id
     if from_state == "order_id" and tool_name == "get_transaction_id":
         return tools.get_transaction_by_order(value)
 
+    # return_id -> refund_id
     if from_state == "return_id":
         return tools.get_refund_by_return(value)
 
+    # refund_id -> refund_status
     if from_state == "refund_id":
         return tools.get_refund_status(value)
 
+    # transaction_id -> refund_status
     if from_state == "transaction_id":
         return tools.get_refund_status_by_transaction(value)
 
-    raise ValueError(f"No tool adapter for edge ({from_state}, {tool_name})")
+    raise ValueError(
+        f"No tool adapter for edge ({from_state}, {tool_name})"
+    )
 
 
 class BaselineAgent:
@@ -83,6 +96,7 @@ class BaselineAgent:
             task_id, executed_tools, states_reached,
             tool_call_count, final_state, success
         """
+
         record: Dict[str, Any] = {
             "task_id": task.task_id,
             "executed_tools": [],
@@ -97,7 +111,9 @@ class BaselineAgent:
         path = self.search_engine.forward_dfs(task)
 
         if not path:
-            record["final_state"] = {start_state: task.initial_state[start_state]}
+            record["final_state"] = {
+                start_state: task.initial_state[start_state]
+            }
             record["states_reached"].append(start_state)
             return record  # no plan found; stop, no recovery attempted
 
@@ -108,9 +124,14 @@ class BaselineAgent:
 
         for from_state, tool_name, to_state in path:
             try:
-                next_value = _execute_tool(from_state, tool_name, current_value)
+                next_value = _execute_tool(
+                    from_state,
+                    tool_name,
+                    current_value
+                )
             except Exception:
-                # Baseline behavior: stop immediately on any error, no recovery.
+                # Baseline behavior: stop immediately on any error,
+                # no recovery.
                 break
 
             record["executed_tools"].append(tool_name)
@@ -125,7 +146,10 @@ class BaselineAgent:
             record["states_reached"].append(current_state_name)
 
         # --- Final bookkeeping -----------------------------------------
-        final_state = {current_state_name: current_value}
+        final_state = {
+            current_state_name: current_value
+        }
+
         record["final_state"] = final_state
         record["success"] = task.is_goal_reached(final_state)
 
@@ -138,7 +162,7 @@ class BaselineAgent:
 if __name__ == "__main__":
     example_task = Task(
         task_id="task_001",
-        initial_state={"user_id": "U101"},
+        initial_state={"account_id": "acc_001"},
         target_state="refund_status",
         required_min_steps=5,
     )
