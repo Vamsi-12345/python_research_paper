@@ -2,7 +2,7 @@
 main.py
 -------
 
-Runs the experimental tasks for the failure-aware
+Runs all experimental tasks for the failure-aware
 tool-use environment.
 
 For every task:
@@ -15,13 +15,14 @@ For every task:
 Agent A:
     - No failure detection
     - No recovery
-    - Stops after the suspicious result
+    - Continues along the planned route
 
 Agent B:
-    - Detects the suspicious result
+    - Detects suspicious results
+    - Classifies failures
+    - Uses trust memory
     - Backtracks
-    - Uses an alternative route
-    - Attempts to reach the correct target
+    - Selects an alternative route
 """
 
 from contextlib import contextmanager
@@ -37,16 +38,16 @@ from search import SearchEngine
 from tasks import get_all_tasks
 
 
-# ---------------------------------------------------------------------------
-# Failure configuration
-# ---------------------------------------------------------------------------
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
 FAILURE_WRONG_VALUE = "tuna"
 
 
-# ---------------------------------------------------------------------------
-# Temporary failure for Agent A
-# ---------------------------------------------------------------------------
+# ============================================================
+# TEMPORARY FAILURE FOR AGENT A
+# ============================================================
 
 @contextmanager
 def temporarily_wrong_tool(
@@ -55,10 +56,12 @@ def temporarily_wrong_tool(
     wrong_value: object
 ):
     """
-    Make the first call to a tool return a wrong value.
+    Make the first call to a selected tool return
+    a suspicious value.
 
-    This is used for Agent A because the baseline agent does
-    not have its own failure recovery mechanism.
+    Agent A does not contain a failure-recovery
+    mechanism, so this demonstrates its behaviour
+    when the tool produces an incorrect result.
     """
 
     original_func = getattr(module, attr_name)
@@ -84,92 +87,100 @@ def temporarily_wrong_tool(
         setattr(module, attr_name, original_func)
 
 
-# ---------------------------------------------------------------------------
-# Print one agent result
-# ---------------------------------------------------------------------------
+# ============================================================
+# PRINT AGENT RESULT
+# ============================================================
 
 def print_agent_result(
     agent_label: str,
     result: dict
 ) -> None:
 
-    print(f"\n--- {agent_label} ---")
+    print()
+    print("-" * 60)
+    print(agent_label)
+    print("-" * 60)
 
     print(
-        f"Reached goal:      "
+        f"Reached goal      : "
         f"{result.get('success')}"
     )
 
     print(
-        f"Tool calls:        "
+        f"Tool calls        : "
         f"{result.get('tool_call_count')}"
     )
 
     print(
-        f"Executed tools:    "
+        f"Executed tools    : "
         f"{result.get('executed_tools')}"
     )
 
     print(
-        f"States reached:    "
+        f"States reached    : "
         f"{result.get('states_reached')}"
     )
 
     print(
-        f"Final state:       "
+        f"Final state       : "
         f"{result.get('final_state')}"
     )
 
     if "failures" in result:
 
         print(
-            f"Failures:          "
+            f"Failures          : "
             f"{result.get('failures')}"
         )
 
     else:
 
         print(
-            "Failures:          "
-            "N/A (Agent A does not classify/record failures)"
+            "Failures          : "
+            "N/A"
         )
 
     if "recovery_attempts" in result:
 
         print(
-            f"Recovery attempts: "
+            f"Recovery attempts : "
             f"{result.get('recovery_attempts')}"
         )
 
     else:
 
         print(
-            "Recovery attempts: "
-            "N/A (Agent A does not attempt recovery)"
+            "Recovery attempts : "
+            "N/A"
         )
 
     if "backtracks" in result:
 
         print(
-            f"Backtracks:        "
+            f"Backtracks        : "
             f"{result.get('backtracks')}"
         )
 
     else:
 
         print(
-            "Backtracks:        "
-            "N/A (Agent A does not backtrack)"
+            "Backtracks        : "
+            "N/A"
         )
 
 
-# ---------------------------------------------------------------------------
-# Run one task
-# ---------------------------------------------------------------------------
+# ============================================================
+# RUN ONE TASK
+# ============================================================
 
-def run_single_task(task, task_number: int, total_tasks: int):
+def run_single_task(
+    task,
+    task_number: int,
+    total_tasks: int
+):
 
-    print("\n")
+    print()
+    print()
     print("=" * 70)
     print(
         f"EXPERIMENT {task_number}/{total_tasks}"
@@ -179,29 +190,26 @@ def run_single_task(task, task_number: int, total_tasks: int):
     print("\nTask:")
     print(task)
 
-    # ---------------------------------------------------------------
-    # 1. Build a fresh graph
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Build a fresh graph
+    # --------------------------------------------------------
 
     graph = build_default_graph()
 
-    # ---------------------------------------------------------------
-    # 2. Find candidate path
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Find candidate path
+    # --------------------------------------------------------
 
     search_engine = SearchEngine(graph)
 
     planned_path = search_engine.forward_dfs(task)
 
-    print("\nPlanned path:")
+    print("\nCandidate path:")
     print(planned_path)
 
-    # ---------------------------------------------------------------
-    # 3. Create a fresh failure injector for Agent B
-    #
-    # A fresh injector is important because once=True means
-    # the failure is injected only once for this task.
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Create fresh failure injector
+    # --------------------------------------------------------
 
     injector = FailureInjector()
 
@@ -214,11 +222,9 @@ def run_single_task(task, task_number: int, total_tasks: int):
         once=True,
     )
 
-    # ---------------------------------------------------------------
-    # 4. Create fresh agents
-    #
-    # Fresh agents keep each task independent.
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Create fresh agents
+    # --------------------------------------------------------
 
     baseline_agent = BaselineAgent(
         graph=graph
@@ -229,9 +235,9 @@ def run_single_task(task, task_number: int, total_tasks: int):
         failure_injector=injector
     )
 
-    # ---------------------------------------------------------------
-    # 5. Run Agent A
-    # ---------------------------------------------------------------
+    # ========================================================
+    # AGENT A
+    # ========================================================
 
     print("\nRunning Agent A...")
 
@@ -243,85 +249,94 @@ def run_single_task(task, task_number: int, total_tasks: int):
 
         result_a = baseline_agent.run(task)
 
-    # ---------------------------------------------------------------
-    # 6. Run Agent B
-    # ---------------------------------------------------------------
+    # ========================================================
+    # AGENT B
+    # ========================================================
 
-    print("Running Agent B...")
+    print("\nRunning Agent B...")
 
     result_b = recovery_agent.run(task)
 
-    # ---------------------------------------------------------------
-    # 7. Display results
-    # ---------------------------------------------------------------
+    # ========================================================
+    # DISPLAY RESULTS
+    # ========================================================
 
     print_agent_result(
-        "Agent A (BaselineAgent)",
+        "AGENT A — BASELINE",
         result_a
     )
 
     print_agent_result(
-        "Agent B (RecoveryAgent)",
+        "AGENT B — RECOVERY",
         result_b
     )
 
     return result_a, result_b
 
 
-# ---------------------------------------------------------------------------
-# Main experiment
-# ---------------------------------------------------------------------------
+# ============================================================
+# MAIN EXPERIMENT
+# ============================================================
 
 def main():
 
     print("=" * 70)
     print("ADAPTIVE TOOL-USE AGENT")
-    print("MULTI-TASK FAILURE RECOVERY EXPERIMENT")
+    print("LONG-HORIZON FAILURE RECOVERY EXPERIMENT")
     print("=" * 70)
 
-    # ---------------------------------------------------------------
-    # Load all tasks from tasks.py
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Load all experimental tasks
+    # --------------------------------------------------------
 
     tasks = get_all_tasks()
 
+    print()
     print(
-        f"\nTotal experimental tasks: {len(tasks)}"
+        f"Number of experimental tasks: "
+        f"{len(tasks)}"
     )
 
     print(
         "Failure type: "
-        "Implicit failure / suspicious result"
+        "Implicit Failure"
     )
 
     print(
-        "Injected value: "
+        "Injected suspicious value: "
         f"{FAILURE_WRONG_VALUE}"
     )
 
-    # ---------------------------------------------------------------
-    # Evaluator
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Create evaluator
+    # --------------------------------------------------------
 
     evaluator = Evaluator()
 
-    # ---------------------------------------------------------------
-    # Store results for summary
-    # ---------------------------------------------------------------
+    # --------------------------------------------------------
+    # Store all results
+    # --------------------------------------------------------
 
     all_results = []
 
-    # ---------------------------------------------------------------
-    # Run every task
-    # ---------------------------------------------------------------
+    # ========================================================
+    # RUN ALL TASKS
+    # ========================================================
 
-    for index, task in enumerate(tasks, start=1):
+    for index, task in enumerate(
+        tasks,
+        start=1
+    ):
 
         result_a, result_b = run_single_task(
             task,
             index,
             len(tasks)
         )
+
+        # ----------------------------------------------------
+        # Store results
+        # ----------------------------------------------------
 
         all_results.append(
             {
@@ -331,9 +346,9 @@ def main():
             }
         )
 
-        # -----------------------------------------------------------
+        # ----------------------------------------------------
         # Add results to evaluator
-        # -----------------------------------------------------------
+        # ----------------------------------------------------
 
         evaluator.add_result(
             f"{task.task_id} - Agent A",
@@ -345,22 +360,23 @@ def main():
             result_b
         )
 
-    # ----------------------------------------------------------------
-    # Final comparison
-    # ----------------------------------------------------------------
+    # ========================================================
+    # FINAL COMPARISON
+    # ========================================================
 
-    print("\n\n")
+    print()
+    print()
     print("=" * 70)
     print("FINAL EXPERIMENTAL COMPARISON")
     print("=" * 70)
 
     evaluator.print_comparison_table()
 
-    # ----------------------------------------------------------------
-    # Simple task-by-task summary
-    # ----------------------------------------------------------------
+    # ========================================================
+    # TASK-BY-TASK SUMMARY
+    # ========================================================
 
-    print("\n")
+    print()
     print("=" * 70)
     print("TASK-BY-TASK SUMMARY")
     print("=" * 70)
@@ -375,7 +391,7 @@ def main():
 
     for item in all_results:
 
-        task_id = item["task"].task_id
+        task = item["task"]
 
         result_a = item["agent_a"]
         result_b = item["agent_b"]
@@ -403,19 +419,75 @@ def main():
         )
 
         print(
-            f"{task_id:<10}"
+            f"{task.task_id:<10}"
             f"{status_a:<20}"
             f"{status_b:<20}"
         )
 
     print("-" * 50)
 
-    print("\nExperiment completed.")
+    # ========================================================
+    # RECOVERY SUMMARY
+    # ========================================================
+
+    successful_a = sum(
+        1
+        for item in all_results
+        if item["agent_a"].get("success", False)
+    )
+
+    successful_b = sum(
+        1
+        for item in all_results
+        if item["agent_b"].get("success", False)
+    )
+
+    total_tasks = len(all_results)
+
+    print()
+    print("=" * 70)
+    print("SUCCESS SUMMARY")
+    print("=" * 70)
+
+    print(
+        f"Agent A successful tasks : "
+        f"{successful_a}/{total_tasks}"
+    )
+
+    print(
+        f"Agent B successful tasks : "
+        f"{successful_b}/{total_tasks}"
+    )
+
+    if total_tasks > 0:
+
+        accuracy_a = (
+            successful_a / total_tasks
+        ) * 100
+
+        accuracy_b = (
+            successful_b / total_tasks
+        ) * 100
+
+        print(
+            f"Agent A task accuracy    : "
+            f"{accuracy_a:.2f}%"
+        )
+
+        print(
+            f"Agent B task accuracy    : "
+            f"{accuracy_b:.2f}%"
+        )
+
+    print()
+    print("=" * 70)
+    print("EXPERIMENT COMPLETED")
+    print("=" * 70)
 
 
-# ---------------------------------------------------------------------------
-# Program entry point
-# ---------------------------------------------------------------------------
+# ============================================================
+# PROGRAM ENTRY POINT
+# ============================================================
 
 if __name__ == "__main__":
     main()
