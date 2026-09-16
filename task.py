@@ -1,6 +1,7 @@
 """
 task.py
 -------
+
 Defines the Task abstraction for the failure-aware tool-use environment.
 
 A Task describes:
@@ -34,13 +35,38 @@ class Task:
 
     def is_goal_reached(self, current_state: Dict[str, Any]) -> bool:
         """
-        Return True if `current_state` contains the target field
-        (e.g. 'refund_status') with a non-None value.
+        Return True only when the target field contains a valid value.
+
+        For refund_status, values such as "tuna" are considered invalid.
+        This prevents the baseline agent's suspicious result from being
+        incorrectly counted as a successful task.
         """
-        return (
-            self.target_state in current_state
-            and current_state[self.target_state] is not None
-        )
+
+        # Target state must exist.
+        if self.target_state not in current_state:
+            return False
+
+        value = current_state[self.target_state]
+
+        # None is not a valid result.
+        if value is None:
+            return False
+
+        # Validate known refund status values.
+        if self.target_state == "refund_status":
+            valid_refund_statuses = {
+                "processed",
+                "pending",
+                "refunded",
+                "failed",
+                "rejected",
+                "approved",
+            }
+
+            return value in valid_refund_statuses
+
+        # For other target states, a non-None value is sufficient.
+        return True
 
     def __repr__(self) -> str:
         return (
@@ -52,10 +78,11 @@ class Task:
 
 
 # ---------------------------------------------------------------------------
-# Example task definition (matches the normal/alternative refund chains
-# supported by tools.py: account_id -> ... -> refund_status)
+# Example task definition
 # ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
+
     example_task = Task(
         task_id="task_001",
         initial_state={"account_id": "acc_001"},
@@ -65,9 +92,32 @@ if __name__ == "__main__":
 
     print(example_task)
 
-    # Goal not yet reached: state only has account_id
-    print("Goal reached?", example_task.is_goal_reached(example_task.initial_state))
+    # Goal not yet reached.
+    print(
+        "Goal reached?",
+        example_task.is_goal_reached(
+            example_task.initial_state
+        )
+    )
 
-    # Simulate a state after a full plan has resolved refund_status
-    finished_state = {"account_id": "acc_001", "refund_status": "processed"}
-    print("Goal reached?", example_task.is_goal_reached(finished_state))
+    # Invalid/suspicious result.
+    invalid_state = {
+        "account_id": "acc_001",
+        "refund_status": "tuna",
+    }
+
+    print(
+        "Invalid result accepted?",
+        example_task.is_goal_reached(invalid_state)
+    )
+
+    # Valid result.
+    finished_state = {
+        "account_id": "acc_001",
+        "refund_status": "processed",
+    }
+
+    print(
+        "Valid result accepted?",
+        example_task.is_goal_reached(finished_state)
+    )
