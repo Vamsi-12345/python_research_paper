@@ -5,12 +5,7 @@ main.py
 Runs all experimental tasks for the failure-aware
 tool-use environment.
 
-For every task:
-    1. Build the tool graph.
-    2. Find a candidate path using SearchEngine.
-    3. Run Agent A with an injected suspicious result.
-    4. Run Agent B with the same injected failure.
-    5. Compare their results.
+Each task can have its own experimental configuration.
 
 Agent A:
     - No failure detection
@@ -46,6 +41,60 @@ FAILURE_WRONG_VALUE = "tuna"
 
 
 # ============================================================
+# EXPERIMENT CONFIGURATION
+# ============================================================
+#
+# Each task has its own experimental condition.
+#
+# failure_tool:
+#     Tool on which the failure is injected.
+#
+# failure_type:
+#     Type of failure injected.
+#
+# inject_failure:
+#     True  -> inject failure
+#     False -> normal execution
+#
+# The current tool graph has a verified recovery route for
+# get_refund_status, so failure experiments use that tool.
+#
+
+EXPERIMENT_CONFIG = {
+
+    "T001": {
+        "inject_failure": True,
+        "failure_tool": "get_refund_status",
+        "failure_type": FailureType.IMPLICIT_FAILURE,
+    },
+
+    "T002": {
+        "inject_failure": False,
+        "failure_tool": None,
+        "failure_type": None,
+    },
+
+    "T003": {
+        "inject_failure": True,
+        "failure_tool": "get_refund_status",
+        "failure_type": FailureType.IMPLICIT_FAILURE,
+    },
+
+    "T004": {
+        "inject_failure": True,
+        "failure_tool": "get_refund_status",
+        "failure_type": FailureType.IMPLICIT_FAILURE,
+    },
+
+    "T005": {
+        "inject_failure": False,
+        "failure_tool": None,
+        "failure_type": None,
+    },
+}
+
+
+# ============================================================
 # TEMPORARY FAILURE FOR AGENT A
 # ============================================================
 
@@ -59,9 +108,8 @@ def temporarily_wrong_tool(
     Make the first call to a selected tool return
     a suspicious value.
 
-    Agent A does not contain a failure-recovery
-    mechanism, so this demonstrates its behaviour
-    when the tool produces an incorrect result.
+    This simulates a misleading tool result for
+    the baseline agent.
     """
 
     original_func = getattr(module, attr_name)
@@ -69,6 +117,7 @@ def temporarily_wrong_tool(
     call_count = 0
 
     def wrong_result(*args, **kwargs):
+
         nonlocal call_count
 
         call_count += 1
@@ -170,6 +219,22 @@ def print_agent_result(
 
 
 # ============================================================
+# GET EXPERIMENT CONFIGURATION
+# ============================================================
+
+def get_experiment_config(task):
+
+    return EXPERIMENT_CONFIG.get(
+        task.task_id,
+        {
+            "inject_failure": False,
+            "failure_tool": None,
+            "failure_type": None,
+        }
+    )
+
+
+# ============================================================
 # RUN ONE TASK
 # ============================================================
 
@@ -189,6 +254,33 @@ def run_single_task(
 
     print("\nTask:")
     print(task)
+
+    # --------------------------------------------------------
+    # Get experiment configuration
+    # --------------------------------------------------------
+
+    config = get_experiment_config(task)
+
+    inject_failure = config["inject_failure"]
+    failure_tool = config["failure_tool"]
+    failure_type = config["failure_type"]
+
+    print("\nExperiment configuration:")
+
+    print(
+        f"Failure injection : "
+        f"{inject_failure}"
+    )
+
+    print(
+        f"Failure tool      : "
+        f"{failure_tool}"
+    )
+
+    print(
+        f"Failure type      : "
+        f"{failure_type}"
+    )
 
     # --------------------------------------------------------
     # Build a fresh graph
@@ -215,12 +307,14 @@ def run_single_task(
 
     injector.enable()
 
-    injector.inject(
-        "get_refund_status",
-        FailureType.IMPLICIT_FAILURE,
-        wrong_value=FAILURE_WRONG_VALUE,
-        once=True,
-    )
+    if inject_failure:
+
+        injector.inject(
+            failure_tool,
+            failure_type,
+            wrong_value=FAILURE_WRONG_VALUE,
+            once=True,
+        )
 
     # --------------------------------------------------------
     # Create fresh agents
@@ -241,11 +335,17 @@ def run_single_task(
 
     print("\nRunning Agent A...")
 
-    with temporarily_wrong_tool(
-        tools,
-        "get_refund_status",
-        FAILURE_WRONG_VALUE
-    ):
+    if inject_failure:
+
+        with temporarily_wrong_tool(
+            tools,
+            failure_tool,
+            FAILURE_WRONG_VALUE
+        ):
+
+            result_a = baseline_agent.run(task)
+
+    else:
 
         result_a = baseline_agent.run(task)
 
@@ -292,20 +392,35 @@ def main():
     tasks = get_all_tasks()
 
     print()
+
     print(
         f"Number of experimental tasks: "
         f"{len(tasks)}"
     )
 
     print(
-        "Failure type: "
-        "Implicit Failure"
-    )
-
-    print(
-        "Injected suspicious value: "
+        f"Injected suspicious value: "
         f"{FAILURE_WRONG_VALUE}"
     )
+
+    # --------------------------------------------------------
+    # Display experiment plan
+    # --------------------------------------------------------
+
+    print()
+    print("=" * 70)
+    print("EXPERIMENT PLAN")
+    print("=" * 70)
+
+    for task in tasks:
+
+        config = get_experiment_config(task)
+
+        print(
+            f"{task.task_id}: "
+            f"failure={config['inject_failure']}, "
+            f"tool={config['failure_tool']}"
+        )
 
     # --------------------------------------------------------
     # Create evaluator
@@ -366,6 +481,7 @@ def main():
 
     print()
     print()
+
     print("=" * 70)
     print("FINAL EXPERIMENTAL COMPARISON")
     print("=" * 70)
@@ -427,19 +543,25 @@ def main():
     print("-" * 50)
 
     # ========================================================
-    # RECOVERY SUMMARY
+    # SUCCESS SUMMARY
     # ========================================================
 
     successful_a = sum(
         1
         for item in all_results
-        if item["agent_a"].get("success", False)
+        if item["agent_a"].get(
+            "success",
+            False
+        )
     )
 
     successful_b = sum(
         1
         for item in all_results
-        if item["agent_b"].get("success", False)
+        if item["agent_b"].get(
+            "success",
+            False
+        )
     )
 
     total_tasks = len(all_results)
@@ -479,6 +601,10 @@ def main():
             f"{accuracy_b:.2f}%"
         )
 
+    # ========================================================
+    # EXPERIMENT COMPLETED
+    # ========================================================
+
     print()
     print("=" * 70)
     print("EXPERIMENT COMPLETED")
@@ -490,4 +616,5 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
+
     main()
