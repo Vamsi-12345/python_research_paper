@@ -49,12 +49,6 @@ const tasks = {
 
 /* =====================================
    EXPERIMENT CONFIGURATION
-
-   This matches the Python experiment
-   configuration.
-
-   true  = failure is injected
-   false = normal execution
 ===================================== */
 
 const experimentConfig = {
@@ -99,6 +93,12 @@ let activeTimers = [];
 let selectedTaskId = "T001";
 
 let experimentResults = {};
+
+/*
+   false = single-task mode
+   true  = aggregate mode
+*/
+let aggregateMode = false;
 
 
 /* =====================================
@@ -158,6 +158,24 @@ function getCurrentConfig() {
 
 
 /* =====================================
+   RESET SINGLE-TASK METRICS
+===================================== */
+
+function resetSingleTaskMetrics() {
+
+    setText("accuracyA", "0%");
+    setText("accuracyB", "0%");
+
+    setText("stepsA", "0");
+    setText("stepsB", "0");
+
+    setText("backtracks", "0");
+    setText("recoveryRate", "0%");
+
+}
+
+
+/* =====================================
    TASK SELECTION
 ===================================== */
 
@@ -187,6 +205,13 @@ function changeTask() {
         return;
     }
 
+    /*
+       Selecting a task always returns
+       the page to single-task mode.
+    */
+
+    aggregateMode = false;
+
 
     setText(
         "taskLabel",
@@ -213,13 +238,6 @@ function changeTask() {
         task.minimumSteps
     );
 
-
-    /*
-       Do NOT automatically inject a failure.
-
-       The task configuration only tells us
-       whether this task is a failure experiment.
-    */
 
     setText(
         "injectedFailure",
@@ -254,6 +272,7 @@ function changeTask() {
 
         taskStatus.style.color =
             "#687487";
+
     }
 
 
@@ -275,35 +294,8 @@ function changeTask() {
         "Ready to run"
     );
 
-    setText(
-        "accuracyA",
-        "0%"
-    );
 
-    setText(
-        "accuracyB",
-        "0%"
-    );
-
-    setText(
-        "stepsA",
-        "0"
-    );
-
-    setText(
-        "stepsB",
-        "0"
-    );
-
-    setText(
-        "backtracks",
-        "0"
-    );
-
-    setText(
-        "recoveryRate",
-        "0%"
-    );
+    resetSingleTaskMetrics();
 
 }
 
@@ -459,11 +451,6 @@ function injectFailure() {
         getCurrentConfig();
 
 
-    /*
-       Only tasks configured for failure
-       can receive an injected failure.
-    */
-
     if (!config.injectFailure) {
 
         if (executionStatus) {
@@ -476,6 +463,8 @@ function injectFailure() {
         return;
     }
 
+
+    aggregateMode = false;
 
     failureInjected = true;
 
@@ -495,6 +484,7 @@ function injectFailure() {
 
         taskStatus.style.color =
             "#c93636";
+
     }
 
 
@@ -528,10 +518,6 @@ function getBaselineSteps(task) {
     const steps = [];
 
 
-    /*
-       account_id → user_id
-    */
-
     if (task.startState === "account_id") {
 
         steps.push({
@@ -550,10 +536,6 @@ function getBaselineSteps(task) {
     }
 
 
-    /*
-       user_id → order_id
-    */
-
     steps.push({
 
         tool:
@@ -567,10 +549,6 @@ function getBaselineSteps(task) {
 
     });
 
-
-    /*
-       order_id → return_id
-    */
 
     steps.push({
 
@@ -586,10 +564,6 @@ function getBaselineSteps(task) {
     });
 
 
-    /*
-       return_id → refund_id
-    */
-
     steps.push({
 
         tool:
@@ -603,10 +577,6 @@ function getBaselineSteps(task) {
 
     });
 
-
-    /*
-       refund_id → refund_status
-    */
 
     steps.push({
 
@@ -638,6 +608,8 @@ function runBaseline() {
     if (simulationRunning) {
         return;
     }
+
+    aggregateMode = false;
 
 
     const task =
@@ -671,6 +643,7 @@ function runBaseline() {
 
         taskStatus.style.color =
             "#687487";
+
     }
 
 
@@ -736,6 +709,11 @@ function runBaseline() {
                             "Failed — returned suspicious value"
                         );
 
+
+                        /*
+                           SINGLE TASK METRICS
+                        */
+
                         setText(
                             "stepsA",
                             steps.length
@@ -743,6 +721,26 @@ function runBaseline() {
 
                         setText(
                             "accuracyA",
+                            "0%"
+                        );
+
+                        setText(
+                            "stepsB",
+                            "0"
+                        );
+
+                        setText(
+                            "accuracyB",
+                            "0%"
+                        );
+
+                        setText(
+                            "backtracks",
+                            "0"
+                        );
+
+                        setText(
+                            "recoveryRate",
                             "0%"
                         );
 
@@ -758,6 +756,7 @@ function runBaseline() {
                                 experimentResults[selectedTaskId]?.agentB || null
 
                         };
+
 
                     } else {
 
@@ -788,6 +787,11 @@ function runBaseline() {
                             "Completed"
                         );
 
+
+                        /*
+                           SINGLE TASK METRICS
+                        */
+
                         setText(
                             "stepsA",
                             steps.length
@@ -796,6 +800,26 @@ function runBaseline() {
                         setText(
                             "accuracyA",
                             "100%"
+                        );
+
+                        setText(
+                            "stepsB",
+                            "0"
+                        );
+
+                        setText(
+                            "accuracyB",
+                            "0%"
+                        );
+
+                        setText(
+                            "backtracks",
+                            "0"
+                        );
+
+                        setText(
+                            "recoveryRate",
+                            "0%"
                         );
 
 
@@ -830,12 +854,9 @@ function runBaseline() {
 
 function getRecoverySteps(task) {
 
-    const steps = [];
-
-
     /*
-       If there is NO failure,
-       Agent B simply follows the normal route.
+       No failure:
+       Agent B follows the normal route.
     */
 
     if (!failureInjected) {
@@ -845,9 +866,8 @@ function getRecoverySteps(task) {
     }
 
 
-    /*
-       account_id → user_id
-    */
+    const steps = [];
+
 
     if (task.startState === "account_id") {
 
@@ -870,10 +890,6 @@ function getRecoverySteps(task) {
     }
 
 
-    /*
-       user_id → order_id
-    */
-
     steps.push({
 
         tool:
@@ -890,10 +906,6 @@ function getRecoverySteps(task) {
 
     });
 
-
-    /*
-       order_id → return_id
-    */
 
     steps.push({
 
@@ -912,10 +924,6 @@ function getRecoverySteps(task) {
     });
 
 
-    /*
-       return_id → refund_id
-    */
-
     steps.push({
 
         tool:
@@ -932,10 +940,6 @@ function getRecoverySteps(task) {
 
     });
 
-
-    /*
-       Failed tool call.
-    */
 
     steps.push({
 
@@ -954,10 +958,6 @@ function getRecoverySteps(task) {
     });
 
 
-    /*
-       Backtracking.
-    */
-
     steps.push({
 
         tool:
@@ -975,10 +975,6 @@ function getRecoverySteps(task) {
     });
 
 
-    /*
-       Alternative route.
-    */
-
     steps.push({
 
         tool:
@@ -995,10 +991,6 @@ function getRecoverySteps(task) {
 
     });
 
-
-    /*
-       Alternative final tool.
-    */
 
     steps.push({
 
@@ -1032,6 +1024,8 @@ function runRecovery() {
         return;
     }
 
+    aggregateMode = false;
+
 
     const task =
         tasks[selectedTaskId];
@@ -1046,11 +1040,6 @@ function runRecovery() {
         recoveryPanel.classList.remove("hidden");
     }
 
-
-    /*
-       Only display the failure panel
-       if an actual failure exists.
-    */
 
     if (failurePanel) {
 
@@ -1151,11 +1140,14 @@ function runRecovery() {
                     );
 
 
+                    /*
+                       SINGLE TASK METRICS
+                    */
+
                     setText(
                         "stepsB",
                         steps.length
                     );
-
 
                     setText(
                         "accuracyB",
@@ -1183,10 +1175,37 @@ function runRecovery() {
                     );
 
 
+                    /*
+                       Keep Agent A result if it
+                       was already executed.
+                    */
+
+                    const previous =
+                        experimentResults[selectedTaskId];
+
+
+                    setText(
+                        "accuracyA",
+                        previous?.agentA
+                            ? previous.agentA.success
+                                ? "100%"
+                                : "0%"
+                            : "0%"
+                    );
+
+
+                    setText(
+                        "stepsA",
+                        previous?.agentA
+                            ? previous.agentA.steps
+                            : "0"
+                    );
+
+
                     experimentResults[selectedTaskId] = {
 
                         agentA:
-                            experimentResults[selectedTaskId]?.agentA || null,
+                            previous?.agentA || null,
 
                         agentB: {
 
@@ -1226,6 +1245,8 @@ function runAllTasks() {
 
     cancelActiveTimers();
 
+    aggregateMode = true;
+
 
     const taskIds =
         Object.keys(tasks);
@@ -1252,18 +1273,9 @@ function runAllTasks() {
             experimentConfig[taskId];
 
 
-        /*
-           Baseline steps.
-        */
-
         const baselineSteps =
             getBaselineStepsForAggregate(task);
 
-
-        /*
-           Recovery steps depend on
-           whether failure was injected.
-        */
 
         const recoverySteps =
             getRecoveryStepsForAggregate(
@@ -1366,11 +1378,6 @@ function runAllTasks() {
         ).toFixed(1);
 
 
-    /*
-       Recovery rate is calculated only
-       among tasks where a failure occurred.
-    */
-
     const failedTasks =
         taskIds.filter(
             taskId =>
@@ -1398,7 +1405,7 @@ function runAllTasks() {
 
 
     /* =================================
-       UPDATE VISIBLE METRICS
+       UPDATE AGGREGATE METRICS
     ================================= */
 
     setText(
@@ -1444,10 +1451,6 @@ function runAllTasks() {
     );
 
 
-    /*
-       Display aggregate table.
-    */
-
     showAggregateResults(
         taskIds,
         accuracyA,
@@ -1467,14 +1470,6 @@ function runAllTasks() {
 
 function getBaselineStepsForAggregate(task) {
 
-    /*
-       account_id:
-       5 calls
-
-       user_id:
-       4 calls
-    */
-
     if (task.startState === "user_id") {
         return 4;
     }
@@ -1493,17 +1488,6 @@ function getRecoveryStepsForAggregate(
     hasFailure
 ) {
 
-    /*
-       No failure:
-       same as normal route.
-
-       account_id:
-       5 calls
-
-       user_id:
-       4 calls
-    */
-
     if (!hasFailure) {
 
         if (task.startState === "user_id") {
@@ -1514,22 +1498,6 @@ function getRecoveryStepsForAggregate(
 
     }
 
-
-    /*
-       Failure recovery:
-
-       account_id:
-       5 normal calls
-       + 1 backtrack
-       + 2 alternative calls
-       = 8
-
-       user_id:
-       4 normal calls
-       + 1 backtrack
-       + 2 alternative calls
-       = 7
-    */
 
     if (task.startState === "user_id") {
         return 7;
@@ -1590,9 +1558,6 @@ function showAggregateResults(
 
         const result =
             experimentResults[taskId];
-
-        const config =
-            experimentConfig[taskId];
 
 
         rows += `
@@ -1719,6 +1684,8 @@ function resetSimulation() {
 
     baselineHasRun = false;
 
+    aggregateMode = false;
+
     clearTrace();
 
 
@@ -1763,35 +1730,8 @@ function resetSimulation() {
         "Ready to run"
     );
 
-    setText(
-        "accuracyA",
-        "0%"
-    );
 
-    setText(
-        "accuracyB",
-        "0%"
-    );
-
-    setText(
-        "stepsA",
-        "0"
-    );
-
-    setText(
-        "stepsB",
-        "0"
-    );
-
-    setText(
-        "backtracks",
-        "0"
-    );
-
-    setText(
-        "recoveryRate",
-        "0%"
-    );
+    resetSingleTaskMetrics();
 
 
     const aggregate =
