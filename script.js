@@ -1,14 +1,57 @@
-/* =====================================
-   TASK DATA
-===================================== */
+/* =========================================================
+   Adaptive Tool-Use Agent
+   PLANBENCH-XL INSPIRED PROJECT
+   Frontend Simulation Script
+   ========================================================= */
+
+/* =========================================================
+   1. EXPERIMENT CONFIGURATION
+   ========================================================= */
+
+const experimentConfig = {
+    T001: {
+        injectFailure: true,
+        failureTool: "get_refund_status",
+        failureType: "IMPLICIT_FAILURE"
+    },
+
+    T002: {
+        injectFailure: false,
+        failureTool: null,
+        failureType: null
+    },
+
+    T003: {
+        injectFailure: true,
+        failureTool: "get_refund_status",
+        failureType: "IMPLICIT_FAILURE"
+    },
+
+    T004: {
+        injectFailure: true,
+        failureTool: "get_refund_status",
+        failureType: "IMPLICIT_FAILURE"
+    },
+
+    T005: {
+        injectFailure: false,
+        failureTool: null,
+        failureType: null
+    }
+};
+
+
+/* =========================================================
+   2. TASK DEFINITIONS
+   ========================================================= */
 
 const tasks = {
-
     T001: {
         id: "T001",
         title: "Refund Status Retrieval",
         initialState: "account_id = acc_001",
         startState: "account_id",
+        targetState: "refund_status",
         minimumSteps: 5
     },
 
@@ -17,6 +60,7 @@ const tasks = {
         title: "Refund Status Retrieval",
         initialState: "account_id = acc_001",
         startState: "account_id",
+        targetState: "refund_status",
         minimumSteps: 5
     },
 
@@ -25,6 +69,7 @@ const tasks = {
         title: "Refund Status Retrieval",
         initialState: "user_id = user_1",
         startState: "user_id",
+        targetState: "refund_status",
         minimumSteps: 4
     },
 
@@ -33,6 +78,7 @@ const tasks = {
         title: "Refund Status Retrieval",
         initialState: "account_id = acc_001",
         startState: "account_id",
+        targetState: "refund_status",
         minimumSteps: 5
     },
 
@@ -41,1606 +87,1194 @@ const tasks = {
         title: "Refund Status Retrieval",
         initialState: "account_id = acc_001",
         startState: "account_id",
+        targetState: "refund_status",
         minimumSteps: 5
     }
-
 };
 
 
-/* =====================================
-   EXPERIMENT CONFIGURATION
-===================================== */
+/* =========================================================
+   3. EXPECTED 5-TASK EXPERIMENTAL RESULTS
+   ========================================================= */
 
-const experimentConfig = {
-
+const aggregateResults = {
     T001: {
-        injectFailure: true,
-        failureType: "Implicit Failure"
+        agentA: {
+            status: "Failed",
+            steps: 5
+        },
+        agentB: {
+            status: "Success",
+            steps: 8
+        },
+        backtracks: 1
     },
 
     T002: {
-        injectFailure: false,
-        failureType: null
+        agentA: {
+            status: "Success",
+            steps: 5
+        },
+        agentB: {
+            status: "Success",
+            steps: 5
+        },
+        backtracks: 0
     },
 
     T003: {
-        injectFailure: true,
-        failureType: "Implicit Failure"
+        agentA: {
+            status: "Failed",
+            steps: 4
+        },
+        agentB: {
+            status: "Success",
+            steps: 7
+        },
+        backtracks: 1
     },
 
     T004: {
-        injectFailure: true,
-        failureType: "Implicit Failure"
+        agentA: {
+            status: "Failed",
+            steps: 5
+        },
+        agentB: {
+            status: "Success",
+            steps: 8
+        },
+        backtracks: 1
     },
 
     T005: {
-        injectFailure: false,
-        failureType: null
+        agentA: {
+            status: "Success",
+            steps: 5
+        },
+        agentB: {
+            status: "Success",
+            steps: 5
+        },
+        backtracks: 0
     }
-
 };
 
 
-/* =====================================
-   SIMULATION STATE
-===================================== */
-
-let failureInjected = false;
-let simulationRunning = false;
-let baselineHasRun = false;
-let activeTimers = [];
+/* =========================================================
+   4. CURRENT SIMULATION STATE
+   ========================================================= */
 
 let selectedTaskId = "T001";
 
-let experimentResults = {};
+let failureInjected = false;
 
-/*
-   false = single-task mode
-   true  = aggregate mode
-*/
-let aggregateMode = false;
+let currentAgent = null;
+
+let currentResult = null;
 
 
-/* =====================================
-   DOM ELEMENTS
-===================================== */
-
-const trace =
-    document.getElementById("executionTrace");
-
-const taskStatus =
-    document.getElementById("taskStatus");
-
-const executionStatus =
-    document.getElementById("executionStatus");
-
-const failurePanel =
-    document.getElementById("failurePanel");
-
-const recoveryPanel =
-    document.getElementById("recoveryPanel");
-
-
-/* =====================================
-   HELPER FUNCTIONS
-===================================== */
+/* =========================================================
+   5. DOM HELPER
+   ========================================================= */
 
 function getElement(id) {
-
     return document.getElementById(id);
-
 }
 
-
 function setText(id, value) {
-
     const element = getElement(id);
 
     if (element) {
-        element.innerText = value;
+        element.textContent = value;
     }
+}
 
+function setHTML(id, value) {
+    const element = getElement(id);
+
+    if (element) {
+        element.innerHTML = value;
+    }
 }
 
 
-/* =====================================
-   GET CURRENT TASK CONFIGURATION
-===================================== */
+/* =========================================================
+   6. CURRENT TASK / CONFIGURATION
+   ========================================================= */
+
+function getCurrentTask() {
+    return tasks[selectedTaskId];
+}
 
 function getCurrentConfig() {
+    return experimentConfig[selectedTaskId];
+}
 
-    return experimentConfig[selectedTaskId] || {
-        injectFailure: false,
-        failureType: null
-    };
+function hasConfiguredFailure(taskId = selectedTaskId) {
+    const config = experimentConfig[taskId];
 
+    return Boolean(config && config.injectFailure);
 }
 
 
-/* =====================================
-   CHECK WHETHER CURRENT TASK HAS
-   A CONFIGURED FAILURE
-===================================== */
+/* =========================================================
+   7. FAILURE TYPE DISPLAY
+   ========================================================= */
 
-function taskHasConfiguredFailure() {
+function formatFailureType(type) {
+    if (!type) {
+        return "None";
+    }
 
+    return type
+        .replaceAll("_", " ")
+        .toLowerCase()
+        .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+
+/* =========================================================
+   8. TASK SELECTOR
+   ========================================================= */
+
+function populateTaskSelector() {
+    const select = getElement("taskSelect");
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML = "";
+
+    Object.values(tasks).forEach(task => {
+        const option = document.createElement("option");
+
+        option.value = task.id;
+        option.textContent = `${task.id} — ${task.title}`;
+
+        select.appendChild(option);
+    });
+
+    select.value = selectedTaskId;
+}
+
+
+/* =========================================================
+   9. DISPLAY SELECTED TASK
+   ========================================================= */
+
+function updateTaskInformation() {
+    const task = getCurrentTask();
     const config = getCurrentConfig();
 
-    return config.injectFailure === true;
-
-}
-
-
-/* =====================================
-   ACTIVATE CONFIGURED FAILURE
-===================================== */
-
-/*
-   Important:
-   The experiment configuration is the
-   source of truth.
-
-   Therefore, when a failure-configured
-   task is run, the failure becomes active
-   automatically.
-
-   This prevents the UI from showing
-   different behavior depending on whether
-   the user clicked "Inject Failure" first.
-*/
-
-function activateConfiguredFailure() {
-
-    if (taskHasConfiguredFailure()) {
-
-        failureInjected = true;
-
-    } else {
-
-        failureInjected = false;
-
-    }
-
-}
-
-
-/* =====================================
-   RESET SINGLE-TASK METRICS
-===================================== */
-
-function resetSingleTaskMetrics() {
-
-    setText("accuracyA", "0%");
-    setText("accuracyB", "0%");
-
-    setText("stepsA", "0");
-    setText("stepsB", "0");
-
-    setText("backtracks", "0");
-    setText("recoveryRate", "0%");
-
-}
-
-
-/* =====================================
-   TASK SELECTION
-===================================== */
-
-function changeTask() {
-
-    if (simulationRunning) {
-        return;
-    }
-
-    const selector =
-        getElement("taskSelect");
-
-    if (!selector) {
-        return;
-    }
-
-    selectedTaskId =
-        selector.value;
-
-    const task =
-        tasks[selectedTaskId];
-
-    const config =
-        getCurrentConfig();
-
-    if (!task) {
-        return;
-    }
+    setText("taskId", task.id);
+    setText("taskTitle", task.title);
+    setText("initialState", task.initialState);
+    setText("targetState", task.targetState);
+    setText("minimumSteps", task.minimumSteps);
 
     /*
-       Selecting a task always returns
-       the page to single-task mode.
-    */
-
-    aggregateMode = false;
-
-    /*
-       Do not activate the failure yet.
-       It will automatically activate when
-       Agent A or Agent B is actually run.
-    */
-
-    failureInjected = false;
-    baselineHasRun = false;
-
-    setText(
-        "taskLabel",
-        `TASK ${task.id}`
-    );
-
-    setText(
-        "taskTitle",
-        task.title
-    );
-
-    setText(
-        "initialState",
-        task.initialState
-    );
-
-    setText(
-        "targetState",
-        "refund_status"
-    );
-
-    setText(
-        "minimumSteps",
-        task.minimumSteps
-    );
-
-    /*
-       This shows the configured experiment
-       condition, not whether the failure
-       has already been executed.
+       Important:
+       This displays the experimental configuration.
+       It does NOT mean the failure has already happened.
     */
 
     setText(
         "injectedFailure",
         config.injectFailure
-            ? config.failureType
+            ? formatFailureType(config.failureType)
             : "None"
     );
 
-    clearTrace();
-
-    if (failurePanel) {
-        failurePanel.classList.add("hidden");
-    }
-
-    if (recoveryPanel) {
-        recoveryPanel.classList.add("hidden");
-    }
-
-    if (taskStatus) {
-
-        taskStatus.innerText =
-            "READY";
-
-        taskStatus.style.background =
-            "#eef1f5";
-
-        taskStatus.style.color =
-            "#687487";
-
-    }
-
-    if (executionStatus) {
-
-        executionStatus.innerText =
-            "Waiting...";
-
-    }
-
     setText(
-        "baselineResult",
-        "Ready to run"
+        "failureTool",
+        config.failureTool || "None"
     );
 
-    setText(
-        "recoveryResult",
-        "Ready to run"
-    );
-
-    resetSingleTaskMetrics();
-
+    updateTaskStatus("READY");
 }
 
 
-/* =====================================
-   TIMER
-===================================== */
+/* =========================================================
+   10. TASK CHANGE
+   ========================================================= */
 
-function schedule(callback, delay) {
+function handleTaskChange() {
+    const select = getElement("taskSelect");
 
-    const timer = setTimeout(() => {
-
-        activeTimers =
-            activeTimers.filter(
-                item => item !== timer
-            );
-
-        if (!simulationRunning) {
-            return;
-        }
-
-        callback();
-
-    }, delay);
-
-    activeTimers.push(timer);
-
-    return timer;
-
-}
-
-
-/* =====================================
-   CANCEL TIMERS
-===================================== */
-
-function cancelActiveTimers() {
-
-    activeTimers.forEach(timer => {
-        clearTimeout(timer);
-    });
-
-    activeTimers = [];
-
-}
-
-
-/* =====================================
-   SCROLL
-===================================== */
-
-function scrollToSimulation() {
-
-    const simulation =
-        document.getElementById("simulation");
-
-    if (simulation) {
-
-        simulation.scrollIntoView({
-            behavior: "smooth"
-        });
-
-    }
-
-}
-
-
-/* =====================================
-   CLEAR TRACE
-===================================== */
-
-function clearTrace() {
-
-    if (trace) {
-
-        trace.innerHTML = `
-            <div class="empty-state">
-                Run an agent to view its execution trace.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* =====================================
-   ADD TRACE STEP
-===================================== */
-
-function addStep(
-    number,
-    tool,
-    state,
-    result,
-    type = "success"
-) {
-
-    if (!trace) {
+    if (!select) {
         return;
     }
 
-    /*
-       Remove empty-state message when the
-       first actual step is displayed.
-    */
+    selectedTaskId = select.value;
 
-    const emptyState =
-        trace.querySelector(".empty-state");
+    failureInjected = false;
+    currentAgent = null;
+    currentResult = null;
 
-    if (emptyState) {
-        emptyState.remove();
-    }
+    clearSimulationPanels();
 
-    const step =
-        document.createElement("div");
-
-    step.className =
-        "trace-step";
-
-    const resultClass =
-        type === "failure"
-            ? "trace-failure"
-            : "trace-success";
-
-    step.innerHTML = `
-
-        <div class="trace-number">
-            ${number}
-        </div>
-
-        <div class="trace-content">
-
-            <div class="trace-tool">
-                ${tool}
-            </div>
-
-            <div class="trace-state">
-                State → ${state}
-            </div>
-
-            <div class="${resultClass}">
-                ${result}
-            </div>
-
-        </div>
-
-    `;
-
-    trace.appendChild(step);
-
-    step.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest"
-    });
-
+    updateTaskInformation();
 }
 
 
-/* =====================================
-   FAILURE INJECTION
-===================================== */
+/* =========================================================
+   11. TASK STATUS
+   ========================================================= */
+
+function updateTaskStatus(status) {
+    setText("taskStatus", status);
+}
+
+
+/* =========================================================
+   12. CLEAR SIMULATION PANELS
+   ========================================================= */
+
+function clearSimulationPanels() {
+    setHTML(
+        "executionTrace",
+        `
+        <div class="empty-state">
+            Select an agent to begin execution.
+        </div>
+        `
+    );
+
+    setHTML(
+        "failurePanel",
+        ""
+    );
+
+    setHTML(
+        "recoveryPanel",
+        ""
+    );
+
+    setText("executionStatus", "Waiting for execution...");
+}
+
+
+/* =========================================================
+   13. FAILURE INJECTION
+   ========================================================= */
 
 function injectFailure() {
-
-    if (simulationRunning) {
-        return;
-    }
-
-    const config =
-        getCurrentConfig();
-
-    /*
-       Normal control tasks cannot receive
-       an injected failure.
-    */
+    const task = getCurrentTask();
+    const config = getCurrentConfig();
 
     if (!config.injectFailure) {
-
         failureInjected = false;
 
-        if (executionStatus) {
-
-            executionStatus.innerText =
-                "This task is configured as a normal execution case.";
-
-        }
+        setHTML(
+            "failurePanel",
+            `
+            <div class="info-message">
+                <strong>No failure configured for ${task.id}.</strong>
+                This is a normal control task.
+            </div>
+            `
+        );
 
         return;
     }
-
-    aggregateMode = false;
 
     failureInjected = true;
 
-    if (failurePanel) {
-        failurePanel.classList.remove("hidden");
-    }
+    setHTML(
+        "failurePanel",
+        `
+        <div class="failure-message">
+            <strong>Tool Failure Injected</strong>
 
-    if (taskStatus) {
+            <p>
+                ${config.failureTool}
+                returned a suspicious result:
+                <strong>"tuna"</strong>
+            </p>
 
-        taskStatus.innerText =
-            "FAILURE INJECTED";
-
-        taskStatus.style.background =
-            "#fff0f0";
-
-        taskStatus.style.color =
-            "#c93636";
-
-    }
-
-    if (executionStatus) {
-
-        executionStatus.innerText =
-            "Failure injected into get_refund_status";
-
-    }
-
-    setText(
-        "baselineResult",
-        "Failure ready to test"
+            <p>
+                Classification:
+                <strong>${formatFailureType(config.failureType)}</strong>
+            </p>
+        </div>
+        `
     );
 
     setText(
-        "recoveryResult",
-        "Failure ready to test"
+        "executionStatus",
+        "Failure injected — ready for agent execution."
     );
-
 }
 
 
-/* =====================================
-   BUILD BASELINE STEPS
-===================================== */
+/* =========================================================
+   14. BASELINE ROUTE
+   ========================================================= */
 
-function getBaselineSteps(task) {
+function getBaselineRoute(task) {
 
-    const steps = [];
+    if (task.startState === "user_id") {
+        return [
+            {
+                tool: "get_order_id",
+                input: "user_1",
+                state: "order_id",
+                output: "order_101"
+            },
 
-    if (task.startState === "account_id") {
+            {
+                tool: "get_return_id",
+                input: "order_101",
+                state: "return_id",
+                output: "return_501"
+            },
 
-        steps.push({
+            {
+                tool: "get_refund_id",
+                input: "return_501",
+                state: "refund_id",
+                output: "refund_701"
+            },
 
-            tool:
-                "get_user_by_account(acc_001)",
-
-            state:
-                "user_id",
-
-            result:
-                "user_1"
-
-        });
-
+            {
+                tool: "get_refund_status",
+                input: "refund_701",
+                state: "refund_status",
+                output: "processed"
+            }
+        ];
     }
 
-    steps.push({
+    return [
+        {
+            tool: "get_user_by_account",
+            input: "acc_001",
+            state: "user_id",
+            output: "user_1"
+        },
 
-        tool:
-            "get_order_id(user_1)",
+        {
+            tool: "get_order_id",
+            input: "user_1",
+            state: "order_id",
+            output: "order_101"
+        },
 
-        state:
-            "order_id",
+        {
+            tool: "get_return_id",
+            input: "order_101",
+            state: "return_id",
+            output: "return_501"
+        },
 
-        result:
-            "order_101"
+        {
+            tool: "get_refund_id",
+            input: "return_501",
+            state: "refund_id",
+            output: "refund_701"
+        },
 
-    });
-
-    steps.push({
-
-        tool:
-            "get_return_id(order_101)",
-
-        state:
-            "return_id",
-
-        result:
-            "return_501"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_refund_id(return_501)",
-
-        state:
-            "refund_id",
-
-        result:
-            "refund_701"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_refund_status(refund_701)",
-
-        state:
-            "refund_status",
-
-        result:
-            failureInjected
-                ? "tuna — IMPLICIT_FAILURE"
-                : "processed"
-
-    });
-
-    return steps;
-
+        {
+            tool: "get_refund_status",
+            input: "refund_701",
+            state: "refund_status",
+            output: "processed"
+        }
+    ];
 }
 
 
-/* =====================================
-   RUN BASELINE AGENT A
-===================================== */
+/* =========================================================
+   15. RECOVERY ROUTE
+   ========================================================= */
 
-function runBaseline() {
+function getRecoveryRoute(task) {
 
-    if (simulationRunning) {
+    const normalRoute = getBaselineRoute(task);
+
+    /*
+       If the task does not have an injected failure,
+       Agent B simply follows the normal route.
+    */
+
+    if (!hasConfiguredFailure(task.id)) {
+        return normalRoute;
+    }
+
+    /*
+       T001 / T004 style:
+       account_id
+       → user_id
+       → order_id
+       → return_id
+       → refund_id
+       → refund_status
+       → BACKTRACK
+       → transaction_id
+       → refund_status
+    */
+
+    if (task.startState === "account_id") {
+        return [
+            {
+                tool: "get_user_by_account",
+                input: "acc_001",
+                state: "user_id",
+                output: "user_1"
+            },
+
+            {
+                tool: "get_order_id",
+                input: "user_1",
+                state: "order_id",
+                output: "order_101"
+            },
+
+            {
+                tool: "get_return_id",
+                input: "order_101",
+                state: "return_id",
+                output: "return_501"
+            },
+
+            {
+                tool: "get_refund_id",
+                input: "return_501",
+                state: "refund_id",
+                output: "refund_701"
+            },
+
+            {
+                tool: "get_refund_status",
+                input: "refund_701",
+                state: "refund_status",
+                output: "tuna",
+                failure: true,
+                failureType: "IMPLICIT_FAILURE"
+            },
+
+            {
+                tool: "BACKTRACK",
+                input: "",
+                state: "order_id",
+                output: "Previous route rejected",
+                backtrack: true
+            },
+
+            {
+                tool: "get_transaction_id",
+                input: "order_101",
+                state: "transaction_id",
+                output: "txn_901"
+            },
+
+            {
+                tool: "get_refund_status_by_transaction",
+                input: "txn_901",
+                state: "refund_status",
+                output: "refunded"
+            }
+        ];
+    }
+
+    /*
+       T003 starts directly at user_id.
+       Therefore it needs one fewer step.
+    */
+
+    return [
+        {
+            tool: "get_order_id",
+            input: "user_1",
+            state: "order_id",
+            output: "order_101"
+        },
+
+        {
+            tool: "get_return_id",
+            input: "order_101",
+            state: "return_id",
+            output: "return_501"
+        },
+
+        {
+            tool: "get_refund_id",
+            input: "return_501",
+            state: "refund_id",
+            output: "refund_701"
+        },
+
+        {
+            tool: "get_refund_status",
+            input: "refund_701",
+            state: "refund_status",
+            output: "tuna",
+            failure: true,
+            failureType: "IMPLICIT_FAILURE"
+        },
+
+        {
+            tool: "BACKTRACK",
+            input: "",
+            state: "order_id",
+            output: "Previous route rejected",
+            backtrack: true
+        },
+
+        {
+            tool: "get_transaction_id",
+            input: "order_101",
+            state: "transaction_id",
+            output: "txn_901"
+        },
+
+        {
+            tool: "get_refund_status_by_transaction",
+            input: "txn_901",
+            state: "refund_status",
+            output: "refunded"
+        }
+    ];
+}
+
+
+/* =========================================================
+   16. DISPLAY TRACE
+   ========================================================= */
+
+function renderTrace(trace, agentName) {
+
+    let html = "";
+
+    trace.forEach((step, index) => {
+
+        if (step.backtrack) {
+
+            html += `
+                <div class="trace-step backtrack-step">
+                    <div class="trace-number">
+                        ${index + 1}
+                    </div>
+
+                    <div class="trace-content">
+                        <strong>BACKTRACK</strong>
+
+                        <div>
+                            State → ${step.state}
+                        </div>
+
+                        <div class="trace-output">
+                            ${step.output}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return;
+        }
+
+        const isFailure = step.failure === true;
+
+        html += `
+            <div class="trace-step ${isFailure ? "failure-step" : ""}">
+                <div class="trace-number">
+                    ${index + 1}
+                </div>
+
+                <div class="trace-content">
+
+                    <strong>
+                        ${step.tool}(${step.input})
+                    </strong>
+
+                    <div>
+                        State → ${step.state}
+                    </div>
+
+                    <div class="trace-output">
+                        ${step.output}
+                        ${
+                            isFailure
+                                ? ` — ${formatFailureType(step.failureType)}`
+                                : ""
+                        }
+                    </div>
+
+                </div>
+            </div>
+        `;
+    });
+
+    setHTML("executionTrace", html);
+
+    setText(
+        "executionStatus",
+        `${agentName} execution completed.`
+    );
+}
+
+
+/* =========================================================
+   17. FAILURE PANEL
+   ========================================================= */
+
+function showFailurePanel() {
+
+    const config = getCurrentConfig();
+
+    if (!config.injectFailure) {
+
+        setHTML(
+            "failurePanel",
+            `
+            <div class="info-message">
+                No failure was configured for this task.
+            </div>
+            `
+        );
+
         return;
     }
 
-    aggregateMode = false;
-
-    const task =
-        tasks[selectedTaskId];
-
-    /*
-       IMPORTANT:
-       Automatically activate the failure
-       when this task is configured for one.
-    */
-
-    activateConfiguredFailure();
-
-    simulationRunning = true;
-
-    clearTrace();
-
-    if (recoveryPanel) {
-        recoveryPanel.classList.add("hidden");
-    }
-
-    if (failurePanel) {
-
-        if (failureInjected) {
-            failurePanel.classList.remove("hidden");
-        } else {
-            failurePanel.classList.add("hidden");
-        }
-
-    }
-
-    if (executionStatus) {
-
-        executionStatus.innerText =
-            failureInjected
-                ? "Agent A executing with configured failure..."
-                : "Agent A executing...";
-
-    }
-
-    if (taskStatus) {
-
-        taskStatus.innerText =
-            "RUNNING";
-
-        taskStatus.style.background =
-            "#eef1f5";
-
-        taskStatus.style.color =
-            "#687487";
-
-    }
-
-    const steps =
-        getBaselineSteps(task);
-
-    steps.forEach((step, index) => {
-
-        schedule(() => {
-
-            const failed =
-                index === steps.length - 1 &&
-                failureInjected;
-
-            addStep(
-                index + 1,
-                step.tool,
-                step.state,
-                step.result,
-                failed
-                    ? "failure"
-                    : "success"
-            );
-
-            if (index === steps.length - 1) {
-
-                schedule(() => {
-
-                    simulationRunning = false;
-
-                    baselineHasRun = true;
-
-                    if (failureInjected) {
-
-                        if (executionStatus) {
-
-                            executionStatus.innerText =
-                                "Agent A completed without recovery";
-
-                        }
-
-                        if (taskStatus) {
-
-                            taskStatus.innerText =
-                                "FAILED";
-
-                            taskStatus.style.background =
-                                "#fff0f0";
-
-                            taskStatus.style.color =
-                                "#c93636";
-
-                        }
-
-                        setText(
-                            "baselineResult",
-                            "Failed — returned suspicious value"
-                        );
-
-                        /*
-                           SINGLE TASK METRICS
-                        */
-
-                        setText(
-                            "stepsA",
-                            steps.length
-                        );
-
-                        setText(
-                            "accuracyA",
-                            "0%"
-                        );
-
-                        /*
-                           Do not erase an already completed
-                           Agent B result.
-                        */
-
-                        const previous =
-                            experimentResults[selectedTaskId];
-
-                        setText(
-                            "stepsB",
-                            previous?.agentB
-                                ? previous.agentB.steps
-                                : "0"
-                        );
-
-                        setText(
-                            "accuracyB",
-                            previous?.agentB
-                                ? previous.agentB.success
-                                    ? "100%"
-                                    : "0%"
-                                : "0%"
-                        );
-
-                        setText(
-                            "backtracks",
-                            previous?.agentB
-                                ? previous.agentB.backtracks
-                                : "0"
-                        );
-
-                        setText(
-                            "recoveryRate",
-                            previous?.agentB
-                                ? previous.agentB.success
-                                    ? "100%"
-                                    : "0%"
-                                : "0%"
-                        );
-
-                        experimentResults[selectedTaskId] = {
-
-                            agentA: {
-                                success: false,
-                                steps: steps.length
-                            },
-
-                            agentB:
-                                previous?.agentB || null
-
-                        };
-
-                    } else {
-
-                        if (executionStatus) {
-
-                            executionStatus.innerText =
-                                "Agent A completed";
-
-                        }
-
-                        if (taskStatus) {
-
-                            taskStatus.innerText =
-                                "COMPLETED";
-
-                            taskStatus.style.background =
-                                "#eaf8f1";
-
-                            taskStatus.style.color =
-                                "#278257";
-
-                        }
-
-                        setText(
-                            "baselineResult",
-                            "Completed"
-                        );
-
-                        /*
-                           SINGLE TASK METRICS
-                        */
-
-                        setText(
-                            "stepsA",
-                            steps.length
-                        );
-
-                        setText(
-                            "accuracyA",
-                            "100%"
-                        );
-
-                        const previous =
-                            experimentResults[selectedTaskId];
-
-                        setText(
-                            "stepsB",
-                            previous?.agentB
-                                ? previous.agentB.steps
-                                : "0"
-                        );
-
-                        setText(
-                            "accuracyB",
-                            previous?.agentB
-                                ? previous.agentB.success
-                                    ? "100%"
-                                    : "0%"
-                                : "0%"
-                        );
-
-                        setText(
-                            "backtracks",
-                            previous?.agentB
-                                ? previous.agentB.backtracks
-                                : "0"
-                        );
-
-                        setText(
-                            "recoveryRate",
-                            "0%"
-                        );
-
-                        experimentResults[selectedTaskId] = {
-
-                            agentA: {
-                                success: true,
-                                steps: steps.length
-                            },
-
-                            agentB:
-                                previous?.agentB || null
-
-                        };
-
-                    }
-
-                }, 300);
-
-            }
-
-        }, index * 500);
-
-    });
-
+    setHTML(
+        "failurePanel",
+        `
+        <div class="failure-message">
+
+            <strong>Tool Failure Detected</strong>
+
+            <p>
+                ${config.failureTool}
+                returned a suspicious result:
+                <strong>"tuna"</strong>
+            </p>
+
+            <p>
+                Classification:
+                <strong>
+                    ${formatFailureType(config.failureType)}
+                </strong>
+            </p>
+
+        </div>
+        `
+    );
 }
 
 
-/* =====================================
-   BUILD RECOVERY STEPS
-===================================== */
+/* =========================================================
+   18. RECOVERY PROCESS PANEL
+   ========================================================= */
 
-function getRecoverySteps(task) {
+function showRecoveryProcess() {
 
-    /*
-       No failure:
-       Agent B follows the normal route.
-    */
+    const config = getCurrentConfig();
 
-    if (!failureInjected) {
+    if (!config.injectFailure) {
 
-        return getBaselineSteps(task);
+        setHTML(
+            "recoveryPanel",
+            `
+            <div class="recovery-message">
 
-    }
+                <h3>Recovery Process</h3>
 
-    const steps = [];
+                <p>
+                    No recovery was required because this task
+                    completed without a configured failure.
+                </p>
 
-    if (task.startState === "account_id") {
+            </div>
+            `
+        );
 
-        steps.push({
-
-            tool:
-                "get_user_by_account(acc_001)",
-
-            state:
-                "user_id",
-
-            result:
-                "user_1",
-
-            type:
-                "success"
-
-        });
-
-    }
-
-    steps.push({
-
-        tool:
-            "get_order_id(user_1)",
-
-        state:
-            "order_id",
-
-        result:
-            "order_101",
-
-        type:
-            "success"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_return_id(order_101)",
-
-        state:
-            "return_id",
-
-        result:
-            "return_501",
-
-        type:
-            "success"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_refund_id(return_501)",
-
-        state:
-            "refund_id",
-
-        result:
-            "refund_701",
-
-        type:
-            "success"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_refund_status(refund_701)",
-
-        state:
-            "refund_status",
-
-        result:
-            "tuna — IMPLICIT_FAILURE",
-
-        type:
-            "failure"
-
-    });
-
-    steps.push({
-
-        tool:
-            "BACKTRACK",
-
-        state:
-            "order_id",
-
-        result:
-            "Previous route rejected",
-
-        type:
-            "failure"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_transaction_id(order_101)",
-
-        state:
-            "transaction_id",
-
-        result:
-            "txn_901",
-
-        type:
-            "success"
-
-    });
-
-    steps.push({
-
-        tool:
-            "get_refund_status_by_transaction(txn_901)",
-
-        state:
-            "refund_status",
-
-        result:
-            "refunded",
-
-        type:
-            "success"
-
-    });
-
-    return steps;
-
-}
-
-
-/* =====================================
-   RUN RECOVERY AGENT B
-===================================== */
-
-function runRecovery() {
-
-    if (simulationRunning) {
         return;
     }
 
-    aggregateMode = false;
+    setHTML(
+        "recoveryPanel",
+        `
+        <div class="recovery-message">
 
-    const task =
-        tasks[selectedTaskId];
+            <h3>RECOVERY PROCESS</h3>
 
-    /*
-       IMPORTANT:
-       Automatically activate the configured
-       failure for Agent B as well.
-    */
+            <ol>
 
-    activateConfiguredFailure();
+                <li>
+                    Failure classified as
+                    <strong>IMPLICIT_FAILURE</strong>
+                </li>
 
-    simulationRunning = true;
+                <li>
+                    Trust memory updated
+                </li>
 
-    clearTrace();
+                <li>
+                    Previous route rejected
+                </li>
 
-    if (recoveryPanel) {
-        recoveryPanel.classList.remove("hidden");
-    }
+                <li>
+                    Agent backtracked
+                </li>
 
-    if (failurePanel) {
+                <li>
+                    Alternative tool selected
+                </li>
 
-        if (failureInjected) {
-            failurePanel.classList.remove("hidden");
-        } else {
-            failurePanel.classList.add("hidden");
-        }
+                <li>
+                    Correct refund status obtained
+                </li>
 
-    }
+            </ol>
 
-    if (executionStatus) {
-
-        executionStatus.innerText =
-            failureInjected
-                ? "Agent B executing with failure recovery..."
-                : "Agent B executing...";
-
-    }
-
-    if (taskStatus) {
-
-        taskStatus.innerText =
-            failureInjected
-                ? "RECOVERING"
-                : "RUNNING";
-
-        taskStatus.style.background =
-            failureInjected
-                ? "#fff7e6"
-                : "#eef1f5";
-
-        taskStatus.style.color =
-            failureInjected
-                ? "#b7791f"
-                : "#687487";
-
-    }
-
-    const steps =
-        getRecoverySteps(task);
-
-    steps.forEach((step, index) => {
-
-        schedule(() => {
-
-            addStep(
-                index + 1,
-                step.tool,
-                step.state,
-                step.result,
-                step.type
-            );
-
-            if (index === steps.length - 1) {
-
-                schedule(() => {
-
-                    simulationRunning = false;
-
-                    if (executionStatus) {
-
-                        executionStatus.innerText =
-                            failureInjected
-                                ? "Agent B successfully recovered"
-                                : "Agent B completed";
-
-                    }
-
-                    if (taskStatus) {
-
-                        taskStatus.innerText =
-                            failureInjected
-                                ? "RECOVERED"
-                                : "COMPLETED";
-
-                        taskStatus.style.background =
-                            "#eaf8f1";
-
-                        taskStatus.style.color =
-                            "#278257";
-
-                    }
-
-                    setText(
-                        "recoveryResult",
-                        failureInjected
-                            ? "Recovered successfully using alternative route"
-                            : "Completed"
-                    );
-
-                    /*
-                       SINGLE TASK METRICS
-                    */
-
-                    setText(
-                        "stepsB",
-                        steps.length
-                    );
-
-                    setText(
-                        "accuracyB",
-                        "100%"
-                    );
-
-                    const backtracks =
-                        failureInjected
-                            ? 1
-                            : 0;
-
-                    setText(
-                        "backtracks",
-                        backtracks
-                    );
-
-                    setText(
-                        "recoveryRate",
-                        failureInjected
-                            ? "100%"
-                            : "0%"
-                    );
-
-                    /*
-                       Keep Agent A result if it
-                       was already executed.
-                    */
-
-                    const previous =
-                        experimentResults[selectedTaskId];
-
-                    setText(
-                        "accuracyA",
-                        previous?.agentA
-                            ? previous.agentA.success
-                                ? "100%"
-                                : "0%"
-                            : "0%"
-                    );
-
-                    setText(
-                        "stepsA",
-                        previous?.agentA
-                            ? previous.agentA.steps
-                            : "0"
-                    );
-
-                    experimentResults[selectedTaskId] = {
-
-                        agentA:
-                            previous?.agentA || null,
-
-                        agentB: {
-
-                            success: true,
-
-                            steps:
-                                steps.length,
-
-                            backtracks:
-                                backtracks
-
-                        }
-
-                    };
-
-                }, 400);
-
-            }
-
-        }, index * 500);
-
-    });
-
+        </div>
+        `
+    );
 }
 
 
-/* =====================================
-   RUN ALL 5 TASKS
-===================================== */
+/* =========================================================
+   19. AGENT A
+   ========================================================= */
+
+function runAgentA() {
+
+    const task = getCurrentTask();
+    const config = getCurrentConfig();
+
+    currentAgent = "A";
+
+    let trace = getBaselineRoute(task);
+
+    /*
+       Automatically apply the configured failure.
+       This is important:
+       the user does NOT have to press Inject Failure first.
+    */
+
+    if (config.injectFailure) {
+
+        trace = trace.map(step => {
+
+            if (step.tool === config.failureTool) {
+
+                return {
+                    ...step,
+                    output: "tuna",
+                    failure: true,
+                    failureType: config.failureType
+                };
+            }
+
+            return step;
+        });
+
+        failureInjected = true;
+
+        currentResult = {
+            status: "Failed",
+            steps: trace.length,
+            backtracks: 0
+        };
+
+    } else {
+
+        currentResult = {
+            status: "Success",
+            steps: trace.length,
+            backtracks: 0
+        };
+    }
+
+    renderTrace(trace, "Agent A");
+
+    if (config.injectFailure) {
+        showFailurePanel();
+
+        setHTML(
+            "recoveryPanel",
+            `
+            <div class="baseline-message">
+
+                <h3>Agent A completed without recovery</h3>
+
+                <p>
+                    The baseline agent continued its planned route
+                    and did not perform failure-aware recovery.
+                </p>
+
+            </div>
+            `
+        );
+
+        updateTaskStatus("FAILED");
+
+    } else {
+
+        setHTML(
+            "failurePanel",
+            `
+            <div class="success-message">
+                No failure occurred in this control task.
+            </div>
+            `
+        );
+
+        setHTML(
+            "recoveryPanel",
+            `
+            <div class="baseline-message">
+
+                <h3>Agent A completed normally</h3>
+
+                <p>
+                    The baseline route reached the target state.
+                </p>
+
+            </div>
+            `
+        );
+
+        updateTaskStatus("COMPLETED");
+    }
+
+    updateSingleTaskMetrics();
+}
+
+
+/* =========================================================
+   20. AGENT B
+   ========================================================= */
+
+function runAgentB() {
+
+    const task = getCurrentTask();
+    const config = getCurrentConfig();
+
+    currentAgent = "B";
+
+    /*
+       IMPORTANT FIX:
+       Agent B automatically respects the task's configured
+       failure. The user does not need to press Inject Failure.
+    */
+
+    if (config.injectFailure) {
+
+        failureInjected = true;
+
+        const trace = getRecoveryRoute(task);
+
+        currentResult = {
+            status: "Success",
+            steps: trace.length,
+            backtracks: trace.filter(step => step.backtrack).length
+        };
+
+        renderTrace(
+            trace,
+            "Agent B successfully recovered"
+        );
+
+        showFailurePanel();
+
+        showRecoveryProcess();
+
+        updateTaskStatus("RECOVERED");
+
+    } else {
+
+        failureInjected = false;
+
+        const trace = getBaselineRoute(task);
+
+        currentResult = {
+            status: "Success",
+            steps: trace.length,
+            backtracks: 0
+        };
+
+        renderTrace(
+            trace,
+            "Agent B completed normally"
+        );
+
+        setHTML(
+            "failurePanel",
+            `
+            <div class="success-message">
+                No failure was configured for this control task.
+            </div>
+            `
+        );
+
+        setHTML(
+            "recoveryPanel",
+            `
+            <div class="recovery-message">
+
+                <h3>No recovery required</h3>
+
+                <p>
+                    Agent B reached the target state using the
+                    normal route.
+                </p>
+
+            </div>
+            `
+        );
+
+        updateTaskStatus("COMPLETED");
+    }
+
+    updateSingleTaskMetrics();
+}
+
+
+/* =========================================================
+   21. SINGLE-TASK METRICS
+   ========================================================= */
+
+function updateSingleTaskMetrics() {
+
+    if (!currentResult) {
+        return;
+    }
+
+    const task = getCurrentTask();
+
+    let accuracyA = "-";
+    let accuracyB = "-";
+
+    let stepsA = "-";
+    let stepsB = "-";
+
+    let backtracksA = "-";
+    let backtracksB = "-";
+
+    let recoveryA = "-";
+    let recoveryB = "-";
+
+    /*
+       When Agent A is selected.
+    */
+
+    if (currentAgent === "A") {
+
+        accuracyA =
+            currentResult.status === "Success"
+                ? "100%"
+                : "0%";
+
+        stepsA = currentResult.steps;
+        backtracksA = currentResult.backtracks;
+
+        if (hasConfiguredFailure(task.id)) {
+            recoveryA = "0%";
+        } else {
+            recoveryA = "N/A";
+        }
+    }
+
+    /*
+       When Agent B is selected.
+    */
+
+    if (currentAgent === "B") {
+
+        accuracyB =
+            currentResult.status === "Success"
+                ? "100%"
+                : "0%";
+
+        stepsB = currentResult.steps;
+        backtracksB = currentResult.backtracks;
+
+        if (hasConfiguredFailure(task.id)) {
+            recoveryB = "100%";
+        } else {
+            recoveryB = "N/A";
+        }
+    }
+
+    setText("accuracyA", accuracyA);
+    setText("accuracyB", accuracyB);
+
+    setText("stepsA", stepsA);
+    setText("stepsB", stepsB);
+
+    setText("backtracksA", backtracksA);
+    setText("backtracksB", backtracksB);
+
+    setText("recoveryRateA", recoveryA);
+    setText("recoveryRateB", recoveryB);
+}
+
+
+/* =========================================================
+   22. RESET
+   ========================================================= */
+
+function resetSimulation() {
+
+    failureInjected = false;
+
+    currentAgent = null;
+
+    currentResult = null;
+
+    clearSimulationPanels();
+
+    updateTaskInformation();
+
+    setText("accuracyA", "-");
+    setText("accuracyB", "-");
+
+    setText("stepsA", "-");
+    setText("stepsB", "-");
+
+    setText("backtracksA", "-");
+    setText("backtracksB", "-");
+
+    setText("recoveryRateA", "-");
+    setText("recoveryRateB", "-");
+
+    setText(
+        "executionStatus",
+        "Waiting for execution..."
+    );
+}
+
+
+/* =========================================================
+   23. RUN ALL FIVE TASKS
+   ========================================================= */
 
 function runAllTasks() {
 
-    if (simulationRunning) {
-        return;
-    }
+    /*
+       These values represent the configured five-task
+       experimental evaluation.
 
-    cancelActiveTimers();
+       T001: A Failed 5 / B Success 8 / 1 backtrack
+       T002: A Success 5 / B Success 5 / 0 backtracks
+       T003: A Failed 4 / B Success 7 / 1 backtrack
+       T004: A Failed 5 / B Success 8 / 1 backtrack
+       T005: A Success 5 / B Success 5 / 0 backtracks
+    */
 
-    aggregateMode = true;
+    const results = Object.values(aggregateResults);
 
-    const taskIds =
-        Object.keys(tasks);
+    const totalTasks = results.length;
 
-    let agentASuccess = 0;
-    let agentBSuccess = 0;
+    const agentASuccesses = results.filter(
+        result => result.agentA.status === "Success"
+    ).length;
 
-    let agentASteps = 0;
-    let agentBSteps = 0;
+    const agentBSuccesses = results.filter(
+        result => result.agentB.status === "Success"
+    ).length;
 
-    let agentBBacktracks = 0;
+    const failureTasks = Object.keys(experimentConfig)
+        .filter(id => experimentConfig[id].injectFailure);
 
-    experimentResults = {};
+    const recoveredFailureTasks = failureTasks.filter(
+        id => aggregateResults[id].agentB.status === "Success"
+    ).length;
 
-    taskIds.forEach(taskId => {
+    const agentASteps = results.reduce(
+        (sum, result) => sum + result.agentA.steps,
+        0
+    );
 
-        const task =
-            tasks[taskId];
+    const agentBSteps = results.reduce(
+        (sum, result) => sum + result.agentB.steps,
+        0
+    );
 
-        const config =
-            experimentConfig[taskId];
+    const totalBacktracks = results.reduce(
+        (sum, result) => sum + result.backtracks,
+        0
+    );
 
-        const baselineSteps =
-            getBaselineStepsForAggregate(task);
+    const agentAAccuracy =
+        (agentASuccesses / totalTasks) * 100;
 
-        const recoverySteps =
-            getRecoveryStepsForAggregate(
-                task,
-                config.injectFailure
-            );
+    const agentBAccuracy =
+        (agentBSuccesses / totalTasks) * 100;
 
-        /*
-           Agent A succeeds only when there
-           is no injected failure.
-        */
+    const agentAAverageSteps =
+        agentASteps / totalTasks;
 
-        const baselineSuccess =
-            !config.injectFailure;
-
-        /*
-           Agent B recovers from all configured
-           failure cases in this experiment.
-        */
-
-        const recoverySuccess =
-            true;
-
-        const backtracks =
-            config.injectFailure
-                ? 1
-                : 0;
-
-        experimentResults[taskId] = {
-
-            agentA: {
-
-                success:
-                    baselineSuccess,
-
-                steps:
-                    baselineSteps
-
-            },
-
-            agentB: {
-
-                success:
-                    recoverySuccess,
-
-                steps:
-                    recoverySteps,
-
-                backtracks:
-                    backtracks
-
-            }
-
-        };
-
-        if (baselineSuccess) {
-            agentASuccess++;
-        }
-
-        if (recoverySuccess) {
-            agentBSuccess++;
-        }
-
-        agentASteps +=
-            baselineSteps;
-
-        agentBSteps +=
-            recoverySteps;
-
-        agentBBacktracks +=
-            backtracks;
-
-    });
-
-
-    const total =
-        taskIds.length;
-
-
-    const accuracyA =
-        Math.round(
-            (agentASuccess / total) * 100
-        );
-
-
-    const accuracyB =
-        Math.round(
-            (agentBSuccess / total) * 100
-        );
-
-
-    const averageStepsA =
-        (
-            agentASteps /
-            total
-        ).toFixed(1);
-
-
-    const averageStepsB =
-        (
-            agentBSteps /
-            total
-        ).toFixed(1);
-
-
-    const failedTasks =
-        taskIds.filter(
-            taskId =>
-                experimentConfig[taskId].injectFailure
-        ).length;
-
-
-    const recoveredFailedTasks =
-        taskIds.filter(
-            taskId =>
-                experimentConfig[taskId].injectFailure &&
-                experimentResults[taskId].agentB.success
-        ).length;
-
+    const agentBAverageSteps =
+        agentBSteps / totalTasks;
 
     const recoveryRate =
-        failedTasks === 0
-            ? 0
-            : Math.round(
-                (
-                    recoveredFailedTasks /
-                    failedTasks
-                ) * 100
-            );
+        failureTasks.length > 0
+            ? (recoveredFailureTasks / failureTasks.length) * 100
+            : 0;
 
-
-    /* =================================
-       UPDATE AGGREGATE METRICS
-    ================================= */
-
-    setText(
-        "accuracyA",
-        `${accuracyA}%`
-    );
-
-    setText(
-        "accuracyB",
-        `${accuracyB}%`
-    );
-
-    setText(
-        "stepsA",
-        averageStepsA
-    );
-
-    setText(
-        "stepsB",
-        averageStepsB
-    );
-
-    setText(
-        "backtracks",
-        agentBBacktracks
-    );
-
-    setText(
-        "recoveryRate",
-        `${recoveryRate}%`
-    );
-
-
-    setText(
-        "baselineResult",
-        `${total} tasks evaluated`
-    );
-
-    setText(
-        "recoveryResult",
-        `Recovered ${recoveredFailedTasks}/${failedTasks} failed tasks`
-    );
-
+    renderAggregateTable();
 
     showAggregateResults(
-        taskIds,
-        accuracyA,
-        accuracyB,
-        averageStepsA,
-        averageStepsB,
-        agentBBacktracks,
+        agentAAccuracy,
+        agentBAccuracy,
+        agentAAverageSteps,
+        agentBAverageSteps,
+        totalBacktracks,
         recoveryRate
     );
 
+    setText(
+        "executionStatus",
+        "All 5 experimental tasks completed."
+    );
+
+    updateTaskStatus("COMPLETED");
 }
 
 
-/* =====================================
-   AGGREGATE BASELINE STEPS
-===================================== */
+/* =========================================================
+   24. AGGREGATE TABLE
+   ========================================================= */
 
-function getBaselineStepsForAggregate(task) {
+function renderAggregateTable() {
 
-    if (task.startState === "user_id") {
-        return 4;
-    }
+    let html = `
+        <div class="aggregate-table-wrapper">
 
-    return 5;
+            <table class="aggregate-table">
 
-}
+                <thead>
 
+                    <tr>
+                        <th>Task</th>
+                        <th>Agent A</th>
+                        <th>A Steps</th>
+                        <th>Agent B</th>
+                        <th>B Steps</th>
+                        <th>Backtracks</th>
+                    </tr>
 
-/* =====================================
-   AGGREGATE RECOVERY STEPS
-===================================== */
+                </thead>
 
-function getRecoveryStepsForAggregate(
-    task,
-    hasFailure
-) {
+                <tbody>
+    `;
 
-    if (!hasFailure) {
+    Object.keys(aggregateResults).forEach(taskId => {
 
-        if (task.startState === "user_id") {
-            return 4;
-        }
+        const result = aggregateResults[taskId];
 
-        return 5;
-
-    }
-
-    if (task.startState === "user_id") {
-        return 7;
-    }
-
-    return 8;
-
-}
-
-
-/* =====================================
-   AGGREGATE RESULT DISPLAY
-===================================== */
-
-function showAggregateResults(
-    taskIds,
-    accuracyA,
-    accuracyB,
-    averageStepsA,
-    averageStepsB,
-    totalBacktracks,
-    recoveryRate
-) {
-
-    let panel =
-        document.getElementById(
-            "aggregateResults"
-        );
-
-
-    if (!panel) {
-
-        panel =
-            document.createElement("div");
-
-        panel.id =
-            "aggregateResults";
-
-        panel.className =
-            "comparison-table-wrapper";
-
-        const comparison =
-            document.getElementById(
-                "comparison"
-            );
-
-        if (comparison) {
-            comparison.appendChild(panel);
-        }
-
-    }
-
-
-    let rows = "";
-
-
-    taskIds.forEach(taskId => {
-
-        const result =
-            experimentResults[taskId];
-
-
-        rows += `
-
+        html += `
             <tr>
 
-                <td>${taskId}</td>
+                <td>
+                    <strong>${taskId}</strong>
+                </td>
 
                 <td>
-                    ${
-                        result.agentA.success
-                            ? "Success"
-                            : "Failed"
-                    }
+                    ${result.agentA.status}
                 </td>
 
                 <td>
@@ -1648,11 +1282,7 @@ function showAggregateResults(
                 </td>
 
                 <td>
-                    ${
-                        result.agentB.success
-                            ? "Success"
-                            : "Failed"
-                    }
+                    ${result.agentB.status}
                 </td>
 
                 <td>
@@ -1660,202 +1290,286 @@ function showAggregateResults(
                 </td>
 
                 <td>
-                    ${result.agentB.backtracks}
+                    ${result.backtracks}
                 </td>
 
             </tr>
-
         `;
-
     });
 
+    html += `
+                </tbody>
 
-    panel.innerHTML = `
-
-        <h3 style="margin-bottom: 15px;">
-            5-Task Experimental Results
-        </h3>
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Task</th>
-
-                    <th>Agent A</th>
-
-                    <th>A Steps</th>
-
-                    <th>Agent B</th>
-
-                    <th>B Steps</th>
-
-                    <th>Backtracks</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                ${rows}
-
-            </tbody>
-
-        </table>
-
-        <div style="
-            padding: 20px;
-            margin-top: 15px;
-            line-height: 1.8;
-        ">
-
-            <strong>Aggregate Results</strong><br>
-
-            Agent A Accuracy:
-            ${accuracyA}%<br>
-
-            Agent B Accuracy:
-            ${accuracyB}%<br>
-
-            Agent A Average Steps:
-            ${averageStepsA}<br>
-
-            Agent B Average Steps:
-            ${averageStepsB}<br>
-
-            Agent B Total Backtracks:
-            ${totalBacktracks}<br>
-
-            Recovery Rate:
-            ${recoveryRate}%
+            </table>
 
         </div>
-
     `;
 
+    setHTML("aggregateResults", html);
 }
 
 
-/* =====================================
-   RESET
-===================================== */
+/* =========================================================
+   25. AGGREGATE METRICS
+   ========================================================= */
 
-function resetSimulation() {
-
-    simulationRunning = false;
-
-    cancelActiveTimers();
-
-    failureInjected = false;
-
-    baselineHasRun = false;
-
-    aggregateMode = false;
-
-    clearTrace();
-
-
-    if (failurePanel) {
-        failurePanel.classList.add("hidden");
-    }
-
-    if (recoveryPanel) {
-        recoveryPanel.classList.add("hidden");
-    }
-
-
-    if (executionStatus) {
-
-        executionStatus.innerText =
-            "Waiting...";
-
-    }
-
-
-    if (taskStatus) {
-
-        taskStatus.innerText =
-            "READY";
-
-        taskStatus.style.background =
-            "#eef1f5";
-
-        taskStatus.style.color =
-            "#687487";
-
-    }
-
+function showAggregateResults(
+    agentAAccuracy,
+    agentBAccuracy,
+    agentAAverageSteps,
+    agentBAverageSteps,
+    totalBacktracks,
+    recoveryRate
+) {
 
     setText(
-        "baselineResult",
-        "Ready to run"
+        "accuracyA",
+        `${agentAAccuracy.toFixed(0)}%`
     );
 
     setText(
-        "recoveryResult",
-        "Ready to run"
+        "accuracyB",
+        `${agentBAccuracy.toFixed(0)}%`
     );
 
+    setText(
+        "stepsA",
+        agentAAverageSteps.toFixed(1)
+    );
 
-    resetSingleTaskMetrics();
+    setText(
+        "stepsB",
+        agentBAverageSteps.toFixed(1)
+    );
+
+    setText(
+        "backtracksA",
+        "0"
+    );
+
+    setText(
+        "backtracksB",
+        totalBacktracks
+    );
+
+    setText(
+        "recoveryRateA",
+        "0%"
+    );
+
+    setText(
+        "recoveryRateB",
+        `${recoveryRate.toFixed(0)}%`
+    );
+
+    /*
+       Optional aggregate summary panel.
+    */
+
+    setHTML(
+        "recoveryPanel",
+        `
+        <div class="aggregate-summary">
+
+            <h3>5-Task Experimental Results</h3>
+
+            <p>
+                <strong>Agent A Accuracy:</strong>
+                ${agentAAccuracy.toFixed(0)}%
+            </p>
+
+            <p>
+                <strong>Agent B Accuracy:</strong>
+                ${agentBAccuracy.toFixed(0)}%
+            </p>
+
+            <p>
+                <strong>Agent A Average Steps:</strong>
+                ${agentAAverageSteps.toFixed(1)}
+            </p>
+
+            <p>
+                <strong>Agent B Average Steps:</strong>
+                ${agentBAverageSteps.toFixed(1)}
+            </p>
+
+            <p>
+                <strong>Agent B Total Backtracks:</strong>
+                ${totalBacktracks}
+            </p>
+
+            <p>
+                <strong>Recovery Rate:</strong>
+                ${recoveryRate.toFixed(0)}%
+            </p>
+
+        </div>
+        `
+    );
+}
 
 
-    const aggregate =
-        document.getElementById(
-            "aggregateResults"
+/* =========================================================
+   26. UPDATE PAGE TEXT
+   ========================================================= */
+
+function updateStaticText() {
+
+    /*
+       Correct title typo if the HTML contains the old text.
+    */
+
+    const bodyTextElements = document.querySelectorAll(
+        "h1, h2, h3, p, span, div"
+    );
+
+    bodyTextElements.forEach(element => {
+
+        if (
+            element.children.length === 0 &&
+            element.textContent.includes(
+                "Adaptive Tool-Use Agentfor"
+            )
+        ) {
+
+            element.textContent =
+                element.textContent.replace(
+                    "Adaptive Tool-Use Agentfor",
+                    "Adaptive Tool-Use Agent for"
+                );
+        }
+    });
+}
+
+
+/* =========================================================
+   27. EVENT LISTENERS
+   ========================================================= */
+
+function setupEventListeners() {
+
+    const taskSelect = getElement("taskSelect");
+
+    if (taskSelect) {
+        taskSelect.addEventListener(
+            "change",
+            handleTaskChange
         );
-
-    if (aggregate) {
-        aggregate.remove();
     }
 
+    const runAgentAButton =
+        getElement("runAgentA");
 
-    experimentResults = {};
-
-
-    if (trace) {
-
-        trace.innerHTML = `
-
-            <div class="empty-state">
-                Run an agent to view its execution trace.
-            </div>
-
-        `;
-
+    if (runAgentAButton) {
+        runAgentAButton.addEventListener(
+            "click",
+            runAgentA
+        );
     }
 
+    const runAgentBButton =
+        getElement("runAgentB");
+
+    if (runAgentBButton) {
+        runAgentBButton.addEventListener(
+            "click",
+            runAgentB
+        );
+    }
+
+    const injectFailureButton =
+        getElement("injectFailure");
+
+    if (injectFailureButton) {
+        injectFailureButton.addEventListener(
+            "click",
+            injectFailure
+        );
+    }
+
+    const resetButton =
+        getElement("reset");
+
+    if (resetButton) {
+        resetButton.addEventListener(
+            "click",
+            resetSimulation
+        );
+    }
+
+    const runAllButton =
+        getElement("runAllTasks");
+
+    if (runAllButton) {
+        runAllButton.addEventListener(
+            "click",
+            runAllTasks
+        );
+    }
 }
 
 
-/* =====================================
-   INITIALIZATION
-===================================== */
+/* =========================================================
+   28. INITIALIZATION
+   ========================================================= */
+
+function initializeSimulation() {
+
+    populateTaskSelector();
+
+    updateTaskInformation();
+
+    clearSimulationPanels();
+
+    setupEventListeners();
+
+    updateStaticText();
+
+    /*
+       Initial metric values.
+    */
+
+    setText("accuracyA", "-");
+    setText("accuracyB", "-");
+
+    setText("stepsA", "-");
+    setText("stepsB", "-");
+
+    setText("backtracksA", "-");
+    setText("backtracksB", "-");
+
+    setText("recoveryRateA", "-");
+    setText("recoveryRateB", "-");
+
+    setText(
+        "executionStatus",
+        "Waiting for execution..."
+    );
+}
+
+
+/* =========================================================
+   29. GLOBAL FUNCTIONS
+   =========================================================
+
+   These are kept so existing HTML buttons using
+   onclick="..." continue to work even if your HTML
+   already contains inline event handlers.
+   ========================================================= */
+
+window.runAgentA = runAgentA;
+window.runAgentB = runAgentB;
+window.injectFailure = injectFailure;
+window.resetSimulation = resetSimulation;
+window.runAllTasks = runAllTasks;
+window.handleTaskChange = handleTaskChange;
+
+
+/* =========================================================
+   30. START APPLICATION
+   ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
-
-        console.log(
-            "Adaptive Tool-Use Agent UI loaded."
-        );
-
-        selectedTaskId =
-            "T001";
-
-        resetSimulation();
-
-        const selector =
-            getElement("taskSelect");
-
-        if (selector) {
-            selector.value = "T001";
-        }
-
-        changeTask();
-
-    }
+    initializeSimulation
 );
