@@ -1399,3 +1399,48 @@ document.addEventListener("DOMContentLoaded", async () => {
         simulationState.currentTask
     );
 });
+
+
+
+// ============================================================
+// COMPATIBILITY FUNCTIONS FOR EXISTING HTML BUTTONS
+// ============================================================
+
+window.runAgentA = async function () {
+    const selector = document.querySelector("select");
+    const taskId = selector ? selector.value : "T001";
+
+    console.log("Running Agent A for:", taskId);
+
+    try {
+        await runAgentAFromAPI(taskId);
+    } catch (error) {
+        console.error("Agent A failed:", error);
+        alert("Agent A error: " + error.message);
+    }
+};
+
+window.runAgentB = async function () {
+    const selector = document.querySelector("select");
+    const taskId = selector ? selector.value : "T001";
+
+    console.log("Running Agent B for:", taskId);
+
+    try {
+        await runAgentBFromAPI(taskId);
+    } catch (error) {
+        console.error("Agent B failed:", error);
+        alert("Agent B error: " + error.message);
+    }
+};
+
+window.runAllTasks = async function () {
+    console.log("Running all 5 tasks...");
+
+    try {
+        await runAllTasksFromAPI();
+    } catch (error) {
+        console.error("Run All failed:", error);
+        alert("Run All error: " + error.message);
+    }
+};
