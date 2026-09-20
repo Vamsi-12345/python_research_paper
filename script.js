@@ -1444,3 +1444,133 @@ window.runAllTasks = async function () {
         alert("Run All error: " + error.message);
     }
 };
+
+
+// ============================================================
+// CONNECT OLD HTML BUTTONS TO THE NEW FASTAPI BACKEND
+// ============================================================
+
+// HTML currently calls runBaseline()
+window.runBaseline = async function () {
+    const selector = document.querySelector("select");
+    const taskId = selector ? selector.value : "T001";
+
+    console.log("Running Agent A for:", taskId);
+
+    try {
+        await runAgentAFromAPI(taskId);
+    } catch (error) {
+        console.error("Agent A error:", error);
+        alert("Agent A error: " + error.message);
+    }
+};
+
+
+// HTML currently calls runAgentB()
+window.runAgentB = async function () {
+    const selector = document.querySelector("select");
+    const taskId = selector ? selector.value : "T001";
+
+    console.log("Running Agent B for:", taskId);
+
+    try {
+        await runAgentBFromAPI(taskId);
+    } catch (error) {
+        console.error("Agent B error:", error);
+        alert("Agent B error: " + error.message);
+    }
+};
+
+
+// HTML currently calls injectFailure()
+window.injectFailure = function () {
+    console.log("Failure injection is controlled by the FastAPI backend.");
+
+    alert(
+        "Failure injection is configured by the backend for the experimental task.\n\n" +
+        "Run Agent A or Agent B to execute the configured failure."
+    );
+};
+
+
+// HTML currently calls resetSimulation()
+window.resetSimulation = function () {
+    console.log("Resetting simulation...");
+    window.location.reload();
+};
+
+
+// HTML currently calls changeTask(value)
+window.changeTask = function (taskId) {
+    console.log("Changing task to:", taskId);
+
+    // Save selected task
+    if (typeof simulationState !== "undefined") {
+        simulationState.currentTask = taskId;
+        simulationState.selectedTask = taskId;
+    }
+
+    // Find the task from the backend-loaded task list
+    let task = null;
+
+    if (typeof backendTasks !== "undefined" && Array.isArray(backendTasks)) {
+        task = backendTasks.find(t => t.task_id === taskId);
+    }
+
+    // Also check taskConfig if backendTasks is not available
+    if (!task && typeof taskConfig !== "undefined") {
+        task = taskConfig[taskId];
+    }
+
+    if (!task) {
+        console.warn("Task not found:", taskId);
+        return;
+    }
+
+    console.log("Selected task:", task);
+
+    // Try to update common task-card elements
+    const allText = document.querySelectorAll("body *");
+
+    allText.forEach(el => {
+        if (el.children.length !== 0) return;
+
+        const text = el.textContent.trim();
+
+        if (text === "TASK T001" || /^TASK T\d+$/.test(text)) {
+            el.textContent = "TASK " + taskId;
+        }
+
+        if (text === "account_id = acc_001" && task.initial_state) {
+            const accountId = task.initial_state.account_id;
+            el.textContent = "account_id = " + accountId;
+        }
+
+        if (text === "refund_status" && el.dataset.taskField === "target") {
+            el.textContent = task.target_state;
+        }
+    });
+};
+
+
+// Keep compatibility with any HTML using runAgentA()
+window.runAgentA = window.runBaseline;
+
+
+// Keep compatibility with any HTML using runAgentB()
+window.runAgentB = window.runAgentB;
+
+
+// Keep compatibility with any HTML using runAllTasks()
+window.runAllTasks = async function () {
+    console.log("Running all 5 tasks...");
+
+    try {
+        await runAllTasksFromAPI();
+    } catch (error) {
+        console.error("Run All error:", error);
+        alert("Run All error: " + error.message);
+    }
+};
+
+console.log("HTML button compatibility functions loaded.");
