@@ -79,7 +79,11 @@ class SearchEngine:
         for state in self.graph.states():
             for edge in self.graph.get_next_options(state):
                 reverse[edge.to_state].append(
-                    Edge(edge.tool_name, state)
+                    Edge(
+                        edge.to_state,
+                        edge.tool_name,
+                        state   
+                    )
                 )
 
         return reverse
