@@ -8,6 +8,33 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 
 
 /* =========================================================
+   FRONTEND STATE
+   ========================================================= */
+
+const simulationState = {
+    currentTask: "T001",
+
+    agentAResult: null,
+    agentBResult: null,
+
+    allResults: null,
+
+    isRunningA: false,
+    isRunningB: false,
+    isRunningAll: false,
+
+    selectedTask: "T001"
+};
+
+
+/* =========================================================
+   BACKEND TASKS
+   ========================================================= */
+
+let backendTasks = [];
+
+
+/* =========================================================
    GENERIC API HELPER
    ========================================================= */
 
@@ -43,9 +70,9 @@ async function checkBackend() {
         console.log("Backend connected:", data);
 
         return data;
+
     } catch (error) {
         console.error("Backend connection failed:", error);
-
         throw error;
     }
 }
@@ -57,14 +84,31 @@ async function checkBackend() {
 
 async function loadTasks() {
     try {
-        const tasks = await apiRequest("/api/tasks");
+        const response = await apiRequest("/api/tasks");
 
-        console.log("Tasks loaded from FastAPI:", tasks);
+        console.log("Tasks loaded from FastAPI:", response);
 
-        return tasks;
+        /*
+         * FastAPI returns:
+         * {
+         *   "tasks": [...]
+         * }
+         */
+
+        if (response && Array.isArray(response.tasks)) {
+            backendTasks = response.tasks;
+        } else if (Array.isArray(response)) {
+            backendTasks = response;
+        } else {
+            backendTasks = [];
+        }
+
+        console.log("Backend task list:", backendTasks);
+
+        return response;
+
     } catch (error) {
         console.error("Failed to load tasks:", error);
-
         throw error;
     }
 }
@@ -75,6 +119,8 @@ async function loadTasks() {
    ========================================================= */
 
 async function runAgentAFromAPI(taskId) {
+    console.log("Sending Agent A request:", taskId);
+
     return apiRequest("/api/run", {
         method: "POST",
         body: JSON.stringify({
@@ -90,6 +136,8 @@ async function runAgentAFromAPI(taskId) {
    ========================================================= */
 
 async function runAgentBFromAPI(taskId) {
+    console.log("Sending Agent B request:", taskId);
+
     return apiRequest("/api/run", {
         method: "POST",
         body: JSON.stringify({
@@ -105,6 +153,8 @@ async function runAgentBFromAPI(taskId) {
    ========================================================= */
 
 async function runComparisonFromAPI(taskId) {
+    console.log("Sending comparison request:", taskId);
+
     const [agentA, agentB] = await Promise.all([
         runAgentAFromAPI(taskId),
         runAgentBFromAPI(taskId)
@@ -122,6 +172,8 @@ async function runComparisonFromAPI(taskId) {
    ========================================================= */
 
 async function runAllTasksFromAPI() {
+    console.log("Sending run-all request...");
+
     return apiRequest("/api/run-all", {
         method: "POST"
     });
@@ -172,24 +224,6 @@ const taskConfig = {
         failure: false,
         failureTool: null
     }
-};
-
-
-/* =========================================================
-   FRONTEND STATE
-   ========================================================= */
-
-const simulationState = {
-    currentTask: "T001",
-
-    agentAResult: null,
-    agentBResult: null,
-
-    allResults: null,
-
-    isRunningA: false,
-    isRunningB: false,
-    isRunningAll: false
 };
 
 
@@ -248,9 +282,127 @@ function getCurrentTaskId() {
 
 
 function setCurrentTask(taskId) {
+    if (!taskId) {
+        console.warn("setCurrentTask received empty task ID.");
+        return;
+    }
+
     simulationState.currentTask = taskId;
+    simulationState.selectedTask = taskId;
 
     console.log("Current task:", taskId);
+}
+
+
+/* =========================================================
+   TASK SELECTION
+   ========================================================= */
+
+function selectTask(taskId) {
+    if (!taskId) {
+        return;
+    }
+
+    setCurrentTask(taskId);
+
+    console.log("Selected task:", taskId);
+
+    const config = taskConfig[taskId];
+
+    if (config) {
+        setElementText("taskTitle", config.title);
+        setElementText("taskDescription", config.description);
+    }
+
+    /*
+     * Update common selectors.
+     */
+
+    const taskSelectors = [
+        "taskSelect",
+        "task-selector",
+        "taskSelector"
+    ];
+
+    for (const id of taskSelectors) {
+        const element = getElement(id);
+
+        if (element && "value" in element) {
+            element.value = taskId;
+        }
+    }
+
+    /*
+     * Update visible task labels.
+     */
+
+    const allText = document.querySelectorAll("body *");
+
+    allText.forEach(element => {
+        if (element.children.length !== 0) {
+            return;
+        }
+
+        const text = element.textContent.trim();
+
+        if (/^TASK T\d+$/.test(text)) {
+            element.textContent = `TASK ${taskId}`;
+        }
+
+        if (
+            text === "account_id = acc_001" &&
+            config
+        ) {
+            const backendTask = backendTasks.find(
+                task => task.task_id === taskId
+            );
+
+            if (
+                backendTask &&
+                backendTask.initial_state &&
+                backendTask.initial_state.account_id
+            ) {
+                element.textContent =
+                    `account_id = ${backendTask.initial_state.account_id}`;
+            }
+        }
+    });
+
+    return taskId;
+}
+
+
+/* =========================================================
+   CHANGE TASK
+   ========================================================= */
+
+function changeTask(taskId) {
+    console.log("Changing task to:", taskId);
+
+    if (!taskId) {
+        console.warn(
+            "changeTask received no task ID. " +
+            "Make sure your HTML uses onchange=\"changeTask(this.value)\"."
+        );
+
+        return;
+    }
+
+    setCurrentTask(taskId);
+
+    selectTask(taskId);
+
+    /*
+     * Clear previous agent results when changing task.
+     */
+
+    simulationState.agentAResult = null;
+    simulationState.agentBResult = null;
+
+    setAgentStatus("AgentA", "Ready");
+    setAgentStatus("AgentB", "Ready");
+
+    console.log("Task changed successfully:", taskId);
 }
 
 
@@ -407,6 +559,7 @@ function getFailureCount(result) {
 
 function displayAgentResult(agentName, result) {
     if (!result) {
+        console.warn(`No result available for ${agentName}.`);
         return;
     }
 
@@ -420,11 +573,13 @@ function displayAgentResult(agentName, result) {
 
     const resultHTML = `
         <div class="agent-result">
+
             <div class="result-status ${success ? "success" : "failure"}">
                 ${success ? "SUCCESS" : "FAILED"}
             </div>
 
             <div class="result-metrics">
+
                 <div class="metric">
                     <strong>Tool Calls</strong>
                     <span>${toolCalls}</span>
@@ -444,14 +599,23 @@ function displayAgentResult(agentName, result) {
                     <strong>Failures</strong>
                     <span>${failures}</span>
                 </div>
+
             </div>
 
             <div class="result-final-state">
+
                 <strong>Final State:</strong>
+
                 <pre>${escapeHTML(
-                    JSON.stringify(result.final_state || {}, null, 2)
+                    JSON.stringify(
+                        result.final_state || {},
+                        null,
+                        2
+                    )
                 )}</pre>
+
             </div>
+
         </div>
     `;
 
@@ -463,16 +627,24 @@ function displayAgentResult(agentName, result) {
         `${agentLower}-output`
     ];
 
+    let rendered = false;
+
     for (const id of possibleIds) {
         const element = getElement(id);
 
         if (element) {
             element.innerHTML = resultHTML;
-            return;
+            rendered = true;
+            break;
         }
     }
 
-    console.log(`${agentName} result:`, result);
+    if (!rendered) {
+        console.log(
+            `${agentName} result container not found. Result:`,
+            result
+        );
+    }
 }
 
 
@@ -507,6 +679,7 @@ function renderBackendTrace(result, agentName) {
 
     let traceHTML = `
         <div class="backend-trace">
+
             <h3>${escapeHTML(agentName)} Trace</h3>
     `;
 
@@ -522,27 +695,28 @@ function renderBackendTrace(result, agentName) {
         const failure = failureByTool[toolName];
 
         const stateBefore =
-            states[index] ||
-            "";
+            states[index] || "";
 
         const stateAfter =
-            states[index + 1] ||
-            "";
+            states[index + 1] || "";
 
         const failed = Boolean(failure);
 
         traceHTML += `
             <div class="trace-step ${failed ? "trace-failure" : ""}">
+
                 <div class="trace-number">
                     ${index + 1}
                 </div>
 
                 <div class="trace-content">
+
                     <div class="trace-tool">
                         ${escapeHTML(toolName)}
                     </div>
 
                     <div class="trace-states">
+
                         ${
                             stateBefore
                                 ? escapeHTML(stateBefore)
@@ -556,24 +730,35 @@ function renderBackendTrace(result, agentName) {
                                 ? escapeHTML(stateAfter)
                                 : "result"
                         }
+
                     </div>
 
                     ${
                         failed
                             ? `
                                 <div class="trace-error">
-                                    <strong>${escapeHTML(
-                                        failure.category || "FAILURE"
-                                    )}</strong>
+
+                                    <strong>
+                                        ${escapeHTML(
+                                            failure.category ||
+                                            "FAILURE"
+                                        )}
+                                    </strong>
+
                                     <br>
+
                                     ${escapeHTML(
-                                        failure.reason || "Failure detected."
+                                        failure.reason ||
+                                        "Failure detected."
                                     )}
+
                                 </div>
                             `
                             : ""
                     }
+
                 </div>
+
             </div>
         `;
     });
@@ -581,8 +766,12 @@ function renderBackendTrace(result, agentName) {
     if (result.recovery_attempts) {
         traceHTML += `
             <div class="trace-recovery">
+
                 Recovery attempts:
-                <strong>${result.recovery_attempts}</strong>
+                <strong>
+                    ${result.recovery_attempts}
+                </strong>
+
             </div>
         `;
     }
@@ -590,8 +779,12 @@ function renderBackendTrace(result, agentName) {
     if (result.backtracks) {
         traceHTML += `
             <div class="trace-backtrack">
+
                 Backtracks:
-                <strong>${result.backtracks}</strong>
+                <strong>
+                    ${result.backtracks}
+                </strong>
+
             </div>
         `;
     }
@@ -624,7 +817,10 @@ function renderBackendTrace(result, agentName) {
     }
 
     if (!rendered) {
-        console.log(`${agentName} trace:`, result);
+        console.log(
+            `${agentName} trace container not found. Trace:`,
+            result
+        );
     }
 }
 
@@ -634,8 +830,14 @@ function renderBackendTrace(result, agentName) {
    ========================================================= */
 
 async function runAgentA(taskId = getCurrentTaskId()) {
+
     if (simulationState.isRunningA) {
+        console.warn("Agent A is already running.");
         return;
+    }
+
+    if (!taskId) {
+        taskId = "T001";
     }
 
     simulationState.isRunningA = true;
@@ -643,38 +845,83 @@ async function runAgentA(taskId = getCurrentTaskId()) {
     setCurrentTask(taskId);
     setAgentStatus("AgentA", "Running...");
 
-    console.log(`Running Agent A for ${taskId}`);
+    console.log(`Running Agent A for: ${taskId}`);
 
     try {
+
+        /*
+         * IMPORTANT:
+         * This sends agent: "A" to FastAPI.
+         */
+
         const response = await runAgentAFromAPI(taskId);
+
+        console.log(
+            "Agent A backend response:",
+            response
+        );
 
         const result = getAgentResult(response);
 
         simulationState.agentAResult = result;
 
-        console.log("Agent A backend response:", response);
-        console.log("Agent A result:", result);
+        console.log(
+            "Agent A result:",
+            result
+        );
 
-        displayAgentResult("Agent A", result);
-        renderBackendTrace(result, "Agent A");
+        /*
+         * Display result.
+         */
+
+        displayAgentResult(
+            "Agent A",
+            result
+        );
+
+        /*
+         * Display execution trace.
+         */
+
+        renderBackendTrace(
+            result,
+            "Agent A"
+        );
+
+        /*
+         * Update status.
+         */
 
         setAgentStatus(
             "AgentA",
-            result.success ? "Success" : "Failed"
+            result && result.success
+                ? "Success"
+                : "Failed"
         );
 
         return response;
 
     } catch (error) {
-        console.error("Agent A error:", error);
 
-        setAgentStatus("AgentA", "Error");
+        console.error(
+            "Agent A error:",
+            error
+        );
 
-        showAPIError(error, "Agent A");
+        setAgentStatus(
+            "AgentA",
+            "Error"
+        );
+
+        showAPIError(
+            error,
+            "Agent A"
+        );
 
         throw error;
 
     } finally {
+
         simulationState.isRunningA = false;
     }
 }
@@ -685,8 +932,14 @@ async function runAgentA(taskId = getCurrentTaskId()) {
    ========================================================= */
 
 async function runAgentB(taskId = getCurrentTaskId()) {
+
     if (simulationState.isRunningB) {
+        console.warn("Agent B is already running.");
         return;
+    }
+
+    if (!taskId) {
+        taskId = "T001";
     }
 
     simulationState.isRunningB = true;
@@ -694,38 +947,83 @@ async function runAgentB(taskId = getCurrentTaskId()) {
     setCurrentTask(taskId);
     setAgentStatus("AgentB", "Running...");
 
-    console.log(`Running Agent B for ${taskId}`);
+    console.log(`Running Agent B for: ${taskId}`);
 
     try {
+
+        /*
+         * IMPORTANT:
+         * This sends agent: "B" to FastAPI.
+         */
+
         const response = await runAgentBFromAPI(taskId);
+
+        console.log(
+            "Agent B backend response:",
+            response
+        );
 
         const result = getAgentResult(response);
 
         simulationState.agentBResult = result;
 
-        console.log("Agent B backend response:", response);
-        console.log("Agent B result:", result);
+        console.log(
+            "Agent B result:",
+            result
+        );
 
-        displayAgentResult("Agent B", result);
-        renderBackendTrace(result, "Agent B");
+        /*
+         * Display result.
+         */
+
+        displayAgentResult(
+            "Agent B",
+            result
+        );
+
+        /*
+         * Display execution trace.
+         */
+
+        renderBackendTrace(
+            result,
+            "Agent B"
+        );
+
+        /*
+         * Update status.
+         */
 
         setAgentStatus(
             "AgentB",
-            result.success ? "Success" : "Failed"
+            result && result.success
+                ? "Success"
+                : "Failed"
         );
 
         return response;
 
     } catch (error) {
-        console.error("Agent B error:", error);
 
-        setAgentStatus("AgentB", "Error");
+        console.error(
+            "Agent B error:",
+            error
+        );
 
-        showAPIError(error, "Agent B");
+        setAgentStatus(
+            "AgentB",
+            "Error"
+        );
+
+        showAPIError(
+            error,
+            "Agent B"
+        );
 
         throw error;
 
     } finally {
+
         simulationState.isRunningB = false;
     }
 }
@@ -735,42 +1033,82 @@ async function runAgentB(taskId = getCurrentTaskId()) {
    RUN COMPARISON FOR ONE TASK
    ========================================================= */
 
-async function runComparison(taskId = getCurrentTaskId()) {
-    console.log(`Running comparison for ${taskId}`);
+async function runComparison(
+    taskId = getCurrentTaskId()
+) {
+
+    console.log(
+        `Running comparison for ${taskId}`
+    );
 
     setCurrentTask(taskId);
 
     try {
-        const response = await runComparisonFromAPI(taskId);
 
-        const agentA = getAgentResult(response.agentA);
-        const agentB = getAgentResult(response.agentB);
+        const response =
+            await runComparisonFromAPI(taskId);
+
+        console.log(
+            "Comparison backend response:",
+            response
+        );
+
+        const agentA =
+            getAgentResult(response.agentA);
+
+        const agentB =
+            getAgentResult(response.agentB);
 
         simulationState.agentAResult = agentA;
         simulationState.agentBResult = agentB;
 
-        displayAgentResult("Agent A", agentA);
-        displayAgentResult("Agent B", agentB);
+        displayAgentResult(
+            "Agent A",
+            agentA
+        );
 
-        renderBackendTrace(agentA, "Agent A");
-        renderBackendTrace(agentB, "Agent B");
+        displayAgentResult(
+            "Agent B",
+            agentB
+        );
+
+        renderBackendTrace(
+            agentA,
+            "Agent A"
+        );
+
+        renderBackendTrace(
+            agentB,
+            "Agent B"
+        );
 
         setAgentStatus(
             "AgentA",
-            agentA.success ? "Success" : "Failed"
+            agentA && agentA.success
+                ? "Success"
+                : "Failed"
         );
 
         setAgentStatus(
             "AgentB",
-            agentB.success ? "Success" : "Failed"
+            agentB && agentB.success
+                ? "Success"
+                : "Failed"
         );
 
         return response;
 
     } catch (error) {
-        console.error("Comparison failed:", error);
 
-        showAPIError(error, "Comparison");
+        console.error(
+            "Comparison failed:",
+            error
+        );
+
+        showAPIError(
+            error,
+            "Comparison"
+        );
 
         throw error;
     }
@@ -778,10 +1116,11 @@ async function runComparison(taskId = getCurrentTaskId()) {
 
 
 /* =========================================================
-   RENDER AGGREGATE RESULTS FROM REAL BACKEND
+   RENDER AGGREGATE RESULTS
    ========================================================= */
 
 function renderAggregateBackendResults(response) {
+
     if (!response) {
         return;
     }
@@ -791,7 +1130,11 @@ function renderAggregateBackendResults(response) {
         : [];
 
     if (results.length === 0) {
-        console.warn("No aggregate results returned.");
+
+        console.warn(
+            "No aggregate results returned."
+        );
+
         return;
     }
 
@@ -808,8 +1151,12 @@ function renderAggregateBackendResults(response) {
     let agentBRecoveredFailures = 0;
 
     results.forEach(taskResult => {
-        const agentA = getAgentResult(taskResult.agent_a);
-        const agentB = getAgentResult(taskResult.agent_b);
+
+        const agentA =
+            getAgentResult(taskResult.agent_a);
+
+        const agentB =
+            getAgentResult(taskResult.agent_b);
 
         if (!agentA || !agentB) {
             return;
@@ -823,15 +1170,23 @@ function renderAggregateBackendResults(response) {
             agentBSuccesses++;
         }
 
-        agentATotalCalls += getToolCount(agentA);
-        agentBTotalCalls += getToolCount(agentB);
+        agentATotalCalls +=
+            getToolCount(agentA);
 
-        agentABacktracks += getBacktrackCount(agentA);
-        agentBBacktracks += getBacktrackCount(agentB);
+        agentBTotalCalls +=
+            getToolCount(agentB);
 
-        const failures = getFailureCount(agentB);
+        agentABacktracks +=
+            getBacktrackCount(agentA);
+
+        agentBBacktracks +=
+            getBacktrackCount(agentB);
+
+        const failures =
+            getFailureCount(agentB);
 
         if (failures > 0) {
+
             agentBFailures++;
 
             if (agentB.success) {
@@ -864,10 +1219,14 @@ function renderAggregateBackendResults(response) {
 
     const recoveryRate =
         agentBFailures > 0
-            ? (agentBRecoveredFailures / agentBFailures) * 100
+            ? (
+                agentBRecoveredFailures /
+                agentBFailures
+            ) * 100
             : 0;
 
     const aggregate = {
+
         totalTasks,
 
         agentA: {
@@ -885,12 +1244,16 @@ function renderAggregateBackendResults(response) {
             averageSteps: agentBAverageSteps,
             backtracks: agentBBacktracks,
             failureTasks: agentBFailures,
-            recoveredFailures: agentBRecoveredFailures,
+            recoveredFailures:
+                agentBRecoveredFailures,
             recoveryRate
         }
     };
 
-    console.log("Aggregate backend results:", aggregate);
+    console.log(
+        "Aggregate backend results:",
+        aggregate
+    );
 
     simulationState.allResults = aggregate;
 
@@ -905,6 +1268,7 @@ function renderAggregateBackendResults(response) {
    ========================================================= */
 
 function showAggregateResults(aggregate) {
+
     if (!aggregate) {
         return;
     }
@@ -912,51 +1276,80 @@ function showAggregateResults(aggregate) {
     const a = aggregate.agentA;
     const b = aggregate.agentB;
 
-    /*
-     * Try to update common IDs used by the existing website.
-     */
-
     const values = {
-        "agentAAccuracy": formatPercent(a.accuracy),
-        "agentBAccuracy": formatPercent(b.accuracy),
 
-        "agentAAverageSteps": formatNumber(a.averageSteps, 1),
-        "agentBAverageSteps": formatNumber(b.averageSteps, 1),
+        agentAAccuracy:
+            formatPercent(a.accuracy),
 
-        "agentABacktracks": String(a.backtracks),
-        "agentBBacktracks": String(b.backtracks),
+        agentBAccuracy:
+            formatPercent(b.accuracy),
 
-        "agentAAccuracyValue": formatPercent(a.accuracy),
-        "agentBAccuracyValue": formatPercent(b.accuracy),
+        agentAAverageSteps:
+            formatNumber(
+                a.averageSteps,
+                1
+            ),
 
-        "agentASteps": formatNumber(a.averageSteps, 1),
-        "agentBSteps": formatNumber(b.averageSteps, 1),
+        agentBAverageSteps:
+            formatNumber(
+                b.averageSteps,
+                1
+            ),
 
-        "agentABacktrackValue": String(a.backtracks),
-        "agentBBacktrackValue": String(b.backtracks),
+        agentABacktracks:
+            String(a.backtracks),
 
-        "recoveryRate": formatPercent(b.recoveryRate),
-        "agentBRecoveryRate": formatPercent(b.recoveryRate),
+        agentBBacktracks:
+            String(b.backtracks),
 
-        "totalTasks": String(aggregate.totalTasks),
+        agentAAccuracyValue:
+            formatPercent(a.accuracy),
 
-        "agentASuccesses":
+        agentBAccuracyValue:
+            formatPercent(b.accuracy),
+
+        agentASteps:
+            formatNumber(
+                a.averageSteps,
+                1
+            ),
+
+        agentBSteps:
+            formatNumber(
+                b.averageSteps,
+                1
+            ),
+
+        agentABacktrackValue:
+            String(a.backtracks),
+
+        agentBBacktrackValue:
+            String(b.backtracks),
+
+        recoveryRate:
+            formatPercent(b.recoveryRate),
+
+        agentBRecoveryRate:
+            formatPercent(b.recoveryRate),
+
+        totalTasks:
+            String(aggregate.totalTasks),
+
+        agentASuccesses:
             `${a.successes}/${aggregate.totalTasks}`,
 
-        "agentBSuccesses":
+        agentBSuccesses:
             `${b.successes}/${aggregate.totalTasks}`
     };
 
-    Object.entries(values).forEach(([id, value]) => {
-        setElementText(id, value);
-    });
-
-
-    /*
-     * Update generic aggregate containers if they exist.
-     */
+    Object.entries(values).forEach(
+        ([id, value]) => {
+            setElementText(id, value);
+        }
+    );
 
     const aggregateHTML = `
+
         <div class="aggregate-results">
 
             <h2>Experiment Results</h2>
@@ -964,65 +1357,95 @@ function showAggregateResults(aggregate) {
             <div class="aggregate-grid">
 
                 <div class="aggregate-agent">
-                    <h3>Agent A — Baseline</h3>
+
+                    <h3>
+                        Agent A — Baseline
+                    </h3>
 
                     <div>
                         Accuracy:
-                        <strong>${formatPercent(a.accuracy)}</strong>
+                        <strong>
+                            ${formatPercent(
+                                a.accuracy
+                            )}
+                        </strong>
                     </div>
 
                     <div>
                         Average Steps:
-                        <strong>${formatNumber(
-                            a.averageSteps,
-                            1
-                        )}</strong>
+                        <strong>
+                            ${formatNumber(
+                                a.averageSteps,
+                                1
+                            )}
+                        </strong>
                     </div>
 
                     <div>
                         Total Tool Calls:
-                        <strong>${a.totalCalls}</strong>
+                        <strong>
+                            ${a.totalCalls}
+                        </strong>
                     </div>
 
                     <div>
                         Backtracks:
-                        <strong>${a.backtracks}</strong>
+                        <strong>
+                            ${a.backtracks}
+                        </strong>
                     </div>
+
                 </div>
 
 
                 <div class="aggregate-agent">
-                    <h3>Agent B — Recovery</h3>
+
+                    <h3>
+                        Agent B — Recovery
+                    </h3>
 
                     <div>
                         Accuracy:
-                        <strong>${formatPercent(b.accuracy)}</strong>
+                        <strong>
+                            ${formatPercent(
+                                b.accuracy
+                            )}
+                        </strong>
                     </div>
 
                     <div>
                         Average Steps:
-                        <strong>${formatNumber(
-                            b.averageSteps,
-                            1
-                        )}</strong>
+                        <strong>
+                            ${formatNumber(
+                                b.averageSteps,
+                                1
+                            )}
+                        </strong>
                     </div>
 
                     <div>
                         Total Tool Calls:
-                        <strong>${b.totalCalls}</strong>
+                        <strong>
+                            ${b.totalCalls}
+                        </strong>
                     </div>
 
                     <div>
                         Backtracks:
-                        <strong>${b.backtracks}</strong>
+                        <strong>
+                            ${b.backtracks}
+                        </strong>
                     </div>
 
                     <div>
                         Recovery Rate:
-                        <strong>${formatPercent(
-                            b.recoveryRate
-                        )}</strong>
+                        <strong>
+                            ${formatPercent(
+                                b.recoveryRate
+                            )}
+                        </strong>
                     </div>
+
                 </div>
 
             </div>
@@ -1039,29 +1462,41 @@ function showAggregateResults(aggregate) {
     ];
 
     for (const id of aggregateIds) {
+
         const element = getElement(id);
 
         if (element) {
-            element.innerHTML = aggregateHTML;
+            element.innerHTML =
+                aggregateHTML;
+
             break;
         }
     }
 
-    /*
-     * Update table cells if your existing HTML uses IDs.
-     */
+    updateMetricCell(
+        "aAccuracy",
+        formatPercent(a.accuracy)
+    );
 
-    updateMetricCell("aAccuracy", formatPercent(a.accuracy));
-    updateMetricCell("bAccuracy", formatPercent(b.accuracy));
+    updateMetricCell(
+        "bAccuracy",
+        formatPercent(b.accuracy)
+    );
 
     updateMetricCell(
         "aSteps",
-        formatNumber(a.averageSteps, 1)
+        formatNumber(
+            a.averageSteps,
+            1
+        )
     );
 
     updateMetricCell(
         "bSteps",
-        formatNumber(b.averageSteps, 1)
+        formatNumber(
+            b.averageSteps,
+            1
+        )
     );
 
     updateMetricCell(
@@ -1081,8 +1516,13 @@ function showAggregateResults(aggregate) {
 }
 
 
-function updateMetricCell(id, value) {
-    const element = getElement(id);
+function updateMetricCell(
+    id,
+    value
+) {
+
+    const element =
+        getElement(id);
 
     if (element) {
         element.textContent = value;
@@ -1095,52 +1535,89 @@ function updateMetricCell(id, value) {
    ========================================================= */
 
 async function runAllTasks() {
+
     if (simulationState.isRunningAll) {
+        console.warn(
+            "Run-all is already running."
+        );
+
         return;
     }
 
     simulationState.isRunningAll = true;
 
-    console.log("Running all tasks through FastAPI...");
+    console.log(
+        "Running all tasks through FastAPI..."
+    );
 
-    setElementText("runAllStatus", "Running all tasks...");
+    setElementText(
+        "runAllStatus",
+        "Running all tasks..."
+    );
 
     try {
-        const response = await runAllTasksFromAPI();
 
-        console.log("Run-all backend response:", response);
+        const response =
+            await runAllTasksFromAPI();
 
-        simulationState.allResults = response;
+        console.log(
+            "Run-all backend response:",
+            response
+        );
 
-        renderAggregateBackendResults(response);
+        simulationState.allResults =
+            response;
 
-        /*
-         * Also print every task result to the browser console.
-         */
+        renderAggregateBackendResults(
+            response
+        );
 
-        if (Array.isArray(response.results)) {
-            response.results.forEach(task => {
-                console.log(
-                    `Task ${task.task_id || ""}:`,
-                    task
-                );
-            });
+        if (
+            Array.isArray(
+                response.results
+            )
+        ) {
+
+            response.results.forEach(
+                task => {
+
+                    console.log(
+                        `Task ${task.task_id || ""}:`,
+                        task
+                    );
+
+                }
+            );
         }
 
-        setElementText("runAllStatus", "All tasks completed");
+        setElementText(
+            "runAllStatus",
+            "All tasks completed"
+        );
 
         return response;
 
     } catch (error) {
-        console.error("Run-all failed:", error);
 
-        setElementText("runAllStatus", "Run-all failed");
+        console.error(
+            "Run-all failed:",
+            error
+        );
 
-        showAPIError(error, "Run All");
+        setElementText(
+            "runAllStatus",
+            "Run-all failed"
+        );
+
+        showAPIError(
+            error,
+            "Run All"
+        );
 
         throw error;
 
     } finally {
+
         simulationState.isRunningAll = false;
     }
 }
@@ -1150,24 +1627,41 @@ async function runAllTasks() {
    API ERROR DISPLAY
    ========================================================= */
 
-function showAPIError(error, source = "Backend") {
+function showAPIError(
+    error,
+    source = "Backend"
+) {
+
     const message =
         error && error.message
             ? error.message
             : String(error);
 
-    console.error(`${source} error:`, message);
+    console.error(
+        `${source} error:`,
+        message
+    );
 
     const errorHTML = `
+
         <div class="api-error">
-            <strong>${escapeHTML(source)} Error</strong>
-            <p>${escapeHTML(message)}</p>
+
+            <strong>
+                ${escapeHTML(source)} Error
+            </strong>
+
+            <p>
+                ${escapeHTML(message)}
+            </p>
 
             <p>
                 Make sure your FastAPI server is running at:
             </p>
 
-            <code>${escapeHTML(API_BASE_URL)}</code>
+            <code>
+                ${escapeHTML(API_BASE_URL)}
+            </code>
+
         </div>
     `;
 
@@ -1178,10 +1672,15 @@ function showAPIError(error, source = "Backend") {
     ];
 
     for (const id of errorIds) {
-        const element = getElement(id);
+
+        const element =
+            getElement(id);
 
         if (element) {
-            element.innerHTML = errorHTML;
+
+            element.innerHTML =
+                errorHTML;
+
             return;
         }
     }
@@ -1193,20 +1692,32 @@ function showAPIError(error, source = "Backend") {
    ========================================================= */
 
 async function initializeBackend() {
-    console.log("Initializing FastAPI connection...");
+
+    console.log(
+        "Initializing FastAPI connection..."
+    );
 
     try {
-        const health = await checkBackend();
+
+        const health =
+            await checkBackend();
 
         setBackendStatus(true);
 
-        console.log("FastAPI health:", health);
+        console.log(
+            "FastAPI health:",
+            health
+        );
 
         try {
+
             await loadTasks();
+
         } catch (taskError) {
+
             console.warn(
-                "Backend is reachable, but task loading failed:",
+                "Backend is reachable, " +
+                "but task loading failed:",
                 taskError
             );
         }
@@ -1214,101 +1725,40 @@ async function initializeBackend() {
         return health;
 
     } catch (error) {
+
         setBackendStatus(false);
 
         console.warn(
             "FastAPI backend is not currently reachable."
         );
 
-        /*
-         * Do not stop the website from loading if the backend
-         * is temporarily offline.
-         */
         return null;
     }
 }
 
 
 /* =========================================================
-   TASK BUTTON HELPERS
-   ========================================================= */
-
-function selectTask(taskId) {
-    setCurrentTask(taskId);
-
-    console.log("Selected task:", taskId);
-
-    const config = taskConfig[taskId];
-
-    if (config) {
-        setElementText(
-            "taskTitle",
-            config.title
-        );
-
-        setElementText(
-            "taskDescription",
-            config.description
-        );
-    }
-
-    /*
-     * Update common task selectors if they exist.
-     */
-
-    const taskSelectors = [
-        "taskSelect",
-        "task-selector",
-        "taskSelector"
-    ];
-
-    for (const id of taskSelectors) {
-        const element = getElement(id);
-
-        if (element && "value" in element) {
-            element.value = taskId;
-        }
-    }
-
-    return taskId;
-}
-
-
-/* =========================================================
-   TRACE SUMMARY
-   ========================================================= */
-
-function getTraceSummary(result) {
-    if (!result) {
-        return {
-            toolCalls: 0,
-            backtracks: 0,
-            failures: 0,
-            recoveryAttempts: 0,
-            success: false
-        };
-    }
-
-    return {
-        toolCalls: getToolCount(result),
-        backtracks: getBacktrackCount(result),
-        failures: getFailureCount(result),
-        recoveryAttempts: getRecoveryCount(result),
-        success: Boolean(result.success)
-    };
-}
-
-
-/* =========================================================
-   CONSOLE DEBUG FUNCTION
+   PRINT CURRENT RESULTS
    ========================================================= */
 
 function printCurrentResults() {
-    console.log("====================================");
-    console.log("CURRENT EXPERIMENT RESULTS");
-    console.log("====================================");
 
-    console.log("Task:", simulationState.currentTask);
+    console.log(
+        "===================================="
+    );
+
+    console.log(
+        "CURRENT EXPERIMENT RESULTS"
+    );
+
+    console.log(
+        "===================================="
+    );
+
+    console.log(
+        "Task:",
+        simulationState.currentTask
+    );
 
     console.log(
         "Agent A:",
@@ -1325,252 +1775,293 @@ function printCurrentResults() {
         simulationState.allResults
     );
 
-    console.log("====================================");
+    console.log(
+        "===================================="
+    );
+}
+
+
+/* =========================================================
+   FAILURE INJECTION COMPATIBILITY
+   ========================================================= */
+
+function injectFailure() {
+
+    console.log(
+        "Failure injection is controlled by FastAPI."
+    );
+
+    alert(
+        "Failure injection is configured by the FastAPI backend.\n\n" +
+        "For T001, T003 and T004, the backend injects the " +
+        "configured failure automatically when you run the agents."
+    );
+}
+
+
+/* =========================================================
+   RESET SIMULATION
+   ========================================================= */
+
+function resetSimulation() {
+
+    console.log(
+        "Resetting simulation..."
+    );
+
+    window.location.reload();
+}
+
+
+/* =========================================================
+   HTML COMPATIBILITY FUNCTIONS
+   ========================================================= */
+
+/*
+ * Some of your existing HTML buttons use:
+ *
+ * onclick="runBaseline()"
+ *
+ * Keep this function so those buttons continue working.
+ */
+
+async function runBaseline() {
+
+    const selector =
+        document.querySelector("select");
+
+    const taskId =
+        selector && selector.value
+            ? selector.value
+            : getCurrentTaskId();
+
+    console.log(
+        "Running Agent A for:",
+        taskId
+    );
+
+    try {
+
+        /*
+         * IMPORTANT:
+         * Call the REAL runAgentA function.
+         *
+         * Do NOT call runAgentAFromAPI directly here,
+         * because runAgentA also updates the webpage.
+         */
+
+        return await runAgentA(taskId);
+
+    } catch (error) {
+
+        console.error(
+            "Agent A failed:",
+            error
+        );
+
+        /*
+         * runAgentA already displays the API error.
+         */
+
+        return null;
+    }
+}
+
+
+/*
+ * Existing HTML may use:
+ *
+ * onclick="runAgentB()"
+ */
+
+async function runAgentBButton() {
+
+    const selector =
+        document.querySelector("select");
+
+    const taskId =
+        selector && selector.value
+            ? selector.value
+            : getCurrentTaskId();
+
+    console.log(
+        "Running Agent B for:",
+        taskId
+    );
+
+    try {
+
+        return await runAgentB(taskId);
+
+    } catch (error) {
+
+        console.error(
+            "Agent B failed:",
+            error
+        );
+
+        return null;
+    }
 }
 
 
 /* =========================================================
    WINDOW EXPORTS
-   =========================================================
-   
-   These make the functions available to your existing HTML
-   buttons such as:
-   
-   onclick="runAgentA('T001')"
-   onclick="runAgentB('T001')"
-   onclick="runAllTasks()"
-   
    ========================================================= */
 
-window.API_BASE_URL = API_BASE_URL;
+window.API_BASE_URL =
+    API_BASE_URL;
 
-window.checkBackend = checkBackend;
-window.loadTasks = loadTasks;
+window.checkBackend =
+    checkBackend;
 
-window.runAgentAFromAPI = runAgentAFromAPI;
-window.runAgentBFromAPI = runAgentBFromAPI;
-window.runComparisonFromAPI = runComparisonFromAPI;
-window.runAllTasksFromAPI = runAllTasksFromAPI;
+window.loadTasks =
+    loadTasks;
 
-window.runAgentA = runAgentA;
-window.runAgentB = runAgentB;
-window.runComparison = runComparison;
-window.runAllTasks = runAllTasks;
+window.runAgentAFromAPI =
+    runAgentAFromAPI;
 
-window.renderBackendTrace = renderBackendTrace;
+window.runAgentBFromAPI =
+    runAgentBFromAPI;
+
+window.runComparisonFromAPI =
+    runComparisonFromAPI;
+
+window.runAllTasksFromAPI =
+    runAllTasksFromAPI;
+
+window.runAgentA =
+    runAgentA;
+
+window.runAgentB =
+    runAgentB;
+
+window.runComparison =
+    runComparison;
+
+window.runAllTasks =
+    runAllTasks;
+
+window.runBaseline =
+    runBaseline;
+
+window.runAgentBButton =
+    runAgentBButton;
+
+window.injectFailure =
+    injectFailure;
+
+window.resetSimulation =
+    resetSimulation;
+
+window.changeTask =
+    changeTask;
+
+window.selectTask =
+    selectTask;
+
+window.setCurrentTask =
+    setCurrentTask;
+
+window.renderBackendTrace =
+    renderBackendTrace;
+
 window.renderAggregateBackendResults =
     renderAggregateBackendResults;
 
-window.showAggregateResults = showAggregateResults;
+window.showAggregateResults =
+    showAggregateResults;
 
-window.selectTask = selectTask;
-window.setCurrentTask = setCurrentTask;
-
-window.printCurrentResults = printCurrentResults;
+window.printCurrentResults =
+    printCurrentResults;
 
 
 /* =========================================================
    DOM READY
    ========================================================= */
 
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log(
-        "PLANBENCH-XL frontend loaded."
-    );
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
 
-    /*
-     * Keep T001 as the initial task unless your HTML
-     * already selected another task.
-     */
-    if (!simulationState.currentTask) {
-        simulationState.currentTask = "T001";
-    }
+        console.log(
+            "PLANBENCH-XL frontend loaded."
+        );
 
-    /*
-     * Initialize backend connection.
-     */
-    await initializeBackend();
+        /*
+         * Initial task.
+         */
 
-    /*
-     * Expose initial state for debugging.
-     */
-    console.log(
-        "Initial task:",
-        simulationState.currentTask
-    );
-});
-
-
-
-// ============================================================
-// COMPATIBILITY FUNCTIONS FOR EXISTING HTML BUTTONS
-// ============================================================
-
-window.runAgentA = async function () {
-    const selector = document.querySelector("select");
-    const taskId = selector ? selector.value : "T001";
-
-    console.log("Running Agent A for:", taskId);
-
-    try {
-        await runAgentAFromAPI(taskId);
-    } catch (error) {
-        console.error("Agent A failed:", error);
-        alert("Agent A error: " + error.message);
-    }
-};
-
-window.runAgentB = async function () {
-    const selector = document.querySelector("select");
-    const taskId = selector ? selector.value : "T001";
-
-    console.log("Running Agent B for:", taskId);
-
-    try {
-        await runAgentBFromAPI(taskId);
-    } catch (error) {
-        console.error("Agent B failed:", error);
-        alert("Agent B error: " + error.message);
-    }
-};
-
-window.runAllTasks = async function () {
-    console.log("Running all 5 tasks...");
-
-    try {
-        await runAllTasksFromAPI();
-    } catch (error) {
-        console.error("Run All failed:", error);
-        alert("Run All error: " + error.message);
-    }
-};
-
-
-// ============================================================
-// CONNECT OLD HTML BUTTONS TO THE NEW FASTAPI BACKEND
-// ============================================================
-
-// HTML currently calls runBaseline()
-window.runBaseline = async function () {
-    const selector = document.querySelector("select");
-    const taskId = selector ? selector.value : "T001";
-
-    console.log("Running Agent A for:", taskId);
-
-    try {
-        await runAgentAFromAPI(taskId);
-    } catch (error) {
-        console.error("Agent A error:", error);
-        alert("Agent A error: " + error.message);
-    }
-};
-
-
-// HTML currently calls runAgentB()
-window.runAgentB = async function () {
-    const selector = document.querySelector("select");
-    const taskId = selector ? selector.value : "T001";
-
-    console.log("Running Agent B for:", taskId);
-
-    try {
-        await runAgentBFromAPI(taskId);
-    } catch (error) {
-        console.error("Agent B error:", error);
-        alert("Agent B error: " + error.message);
-    }
-};
-
-
-// HTML currently calls injectFailure()
-window.injectFailure = function () {
-    console.log("Failure injection is controlled by the FastAPI backend.");
-
-    alert(
-        "Failure injection is configured by the backend for the experimental task.\n\n" +
-        "Run Agent A or Agent B to execute the configured failure."
-    );
-};
-
-
-// HTML currently calls resetSimulation()
-window.resetSimulation = function () {
-    console.log("Resetting simulation...");
-    window.location.reload();
-};
-
-
-// HTML currently calls changeTask(value)
-window.changeTask = function (taskId) {
-    console.log("Changing task to:", taskId);
-
-    // Save selected task
-    if (typeof simulationState !== "undefined") {
-        simulationState.currentTask = taskId;
-        simulationState.selectedTask = taskId;
-    }
-
-    // Find the task from the backend-loaded task list
-    let task = null;
-
-    if (typeof backendTasks !== "undefined" && Array.isArray(backendTasks)) {
-        task = backendTasks.find(t => t.task_id === taskId);
-    }
-
-    // Also check taskConfig if backendTasks is not available
-    if (!task && typeof taskConfig !== "undefined") {
-        task = taskConfig[taskId];
-    }
-
-    if (!task) {
-        console.warn("Task not found:", taskId);
-        return;
-    }
-
-    console.log("Selected task:", task);
-
-    // Try to update common task-card elements
-    const allText = document.querySelectorAll("body *");
-
-    allText.forEach(el => {
-        if (el.children.length !== 0) return;
-
-        const text = el.textContent.trim();
-
-        if (text === "TASK T001" || /^TASK T\d+$/.test(text)) {
-            el.textContent = "TASK " + taskId;
+        if (!simulationState.currentTask) {
+            simulationState.currentTask =
+                "T001";
         }
 
-        if (text === "account_id = acc_001" && task.initial_state) {
-            const accountId = task.initial_state.account_id;
-            el.textContent = "account_id = " + accountId;
+        /*
+         * Initialize backend.
+         */
+
+        await initializeBackend();
+
+        /*
+         * Set initial selector if present.
+         */
+
+        const selector =
+            document.querySelector("select");
+
+        if (selector) {
+
+            if (!selector.value) {
+                selector.value =
+                    simulationState.currentTask;
+            }
+
+            /*
+             * This also fixes HTML that does not
+             * explicitly pass this.value.
+             */
+
+            selector.addEventListener(
+                "change",
+                function () {
+                    changeTask(
+                        this.value
+                    );
+                }
+            );
         }
 
-        if (text === "refund_status" && el.dataset.taskField === "target") {
-            el.textContent = task.target_state;
-        }
-    });
-};
+        /*
+         * Show initial task.
+         */
 
+        selectTask(
+            simulationState.currentTask
+        );
 
-// Keep compatibility with any HTML using runAgentA()
-window.runAgentA = window.runBaseline;
+        console.log(
+            "Initial task:",
+            simulationState.currentTask
+        );
 
-
-// Keep compatibility with any HTML using runAgentB()
-window.runAgentB = window.runAgentB;
-
-
-// Keep compatibility with any HTML using runAllTasks()
-window.runAllTasks = async function () {
-    console.log("Running all 5 tasks...");
-
-    try {
-        await runAllTasksFromAPI();
-    } catch (error) {
-        console.error("Run All error:", error);
-        alert("Run All error: " + error.message);
     }
-};
+);
 
-console.log("HTML button compatibility functions loaded.");
+
+/* =========================================================
+   FINAL DEBUG MESSAGE
+   ========================================================= */
+
+console.log(
+    "PLANBENCH-XL script loaded successfully."
+);
+
+console.log(
+    "FastAPI URL:",
+    API_BASE_URL
+);
+
+console.log(
+    "HTML button compatibility functions loaded."
+);
